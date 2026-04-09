@@ -52,13 +52,15 @@ export function BuySection({
   }, [isSuccess, reset]);
 
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900 p-6">
-      <h2 className="text-lg font-semibold text-white mb-4">Purchase</h2>
-      <div className="flex items-baseline gap-2 mb-4">
-        <span className="text-3xl font-bold text-white">
+    <div className="glass relative overflow-hidden p-6">
+      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-brand-500/30 to-transparent" />
+
+      <h2 className="text-sm font-medium text-slate-400 mb-3">Purchase</h2>
+      <div className="flex items-baseline gap-2 mb-6">
+        <span className="text-4xl font-bold text-white">
           {formatEther(price)}
         </span>
-        <span className="text-slate-400">ETH per ticket</span>
+        <span className="text-slate-500 text-sm">ETH / ticket</span>
       </div>
 
       <button
@@ -71,7 +73,7 @@ export function BuySection({
           })
         }
         disabled={!canBuy || isPending || isConfirming}
-        className="btn-press w-full rounded-lg bg-brand-600 px-4 py-3.5 font-semibold text-white hover:bg-brand-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+        className="btn-primary w-full"
       >
         {isPending
           ? "Confirm in Wallet..."

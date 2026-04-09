@@ -7,7 +7,7 @@ import { useState } from "react";
 
 const NAV_LINKS = [
   { href: "/", label: "Events" },
-  { href: "/create", label: "Create Event" },
+  { href: "/create", label: "Create" },
   { href: "/my-tickets", label: "My Tickets" },
 ];
 
@@ -26,10 +26,10 @@ function NavLink({
     <Link
       href={href}
       onClick={onClick}
-      className={`transition-colors duration-200 ${
+      className={`relative px-3 py-1.5 rounded-lg text-sm transition-all duration-200 ${
         active
-          ? "text-white font-medium"
-          : "text-slate-400 hover:text-white"
+          ? "text-white bg-white/[0.06]"
+          : "text-slate-400 hover:text-white hover:bg-white/[0.04]"
       }`}
     >
       {label}
@@ -47,16 +47,21 @@ export function Header() {
   }
 
   return (
-    <header className="border-b border-slate-800 bg-slate-950/80 backdrop-blur-sm sticky top-0 z-50">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-        <div className="flex items-center gap-8">
+    <header className="sticky top-0 z-50 border-b border-white/[0.06] bg-slate-950/60 backdrop-blur-xl">
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
+        <div className="flex items-center gap-6">
           <Link
             href="/"
-            className="text-xl font-bold text-white tracking-tight"
+            className="text-lg font-bold text-white tracking-tight flex items-center gap-2"
           >
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" />
+              </svg>
+            </div>
             Onchain Tickets
           </Link>
-          <nav className="hidden md:flex gap-6 text-sm">
+          <nav className="hidden md:flex items-center gap-1">
             {NAV_LINKS.map((link) => (
               <NavLink
                 key={link.href}
@@ -72,12 +77,12 @@ export function Header() {
           <ConnectButton />
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="md:hidden p-2 text-slate-400 hover:text-white transition-colors duration-200"
+            className="md:hidden p-2 text-slate-400 hover:text-white transition-colors duration-200 rounded-lg hover:bg-white/[0.04]"
             aria-label="Toggle navigation"
           >
             <svg
-              width="20"
-              height="20"
+              width="18"
+              height="18"
               viewBox="0 0 20 20"
               fill="none"
               stroke="currentColor"
@@ -102,16 +107,15 @@ export function Header() {
       </div>
 
       {mobileOpen && (
-        <nav className="md:hidden border-t border-slate-800 px-6 py-4 space-y-3 text-sm animate-fade-in">
+        <nav className="md:hidden border-t border-white/[0.06] px-6 py-3 flex flex-col gap-1 animate-fade-in">
           {NAV_LINKS.map((link) => (
-            <div key={link.href}>
-              <NavLink
-                href={link.href}
-                label={link.label}
-                active={isActive(link.href)}
-                onClick={() => setMobileOpen(false)}
-              />
-            </div>
+            <NavLink
+              key={link.href}
+              href={link.href}
+              label={link.label}
+              active={isActive(link.href)}
+              onClick={() => setMobileOpen(false)}
+            />
           ))}
         </nav>
       )}

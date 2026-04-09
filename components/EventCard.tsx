@@ -45,9 +45,7 @@ export function EventCard({
   });
 
   if (isLoading || !data) {
-    return (
-      <div className="rounded-xl border border-slate-800 bg-slate-900 p-6 animate-pulse h-56" />
-    );
+    return <div className="skeleton h-64" />;
   }
 
   const [name, venue, eventDate, price, maxSupply, totalMinted, cancelled, saleActive] =
@@ -64,70 +62,72 @@ export function EventCard({
   return (
     <Link
       href={`/event/${address}`}
-      className="animate-fade-in-up block"
+      className="animate-fade-in-up block group"
       style={{ animationDelay: `${index * 60}ms` }}
     >
-      <div className="rounded-xl border border-slate-800 bg-slate-900 p-6 transition-all duration-200 group hover:border-brand-500/60 hover:shadow-lg hover:shadow-brand-500/5 hover:-translate-y-0.5">
-        <div className="flex items-start justify-between mb-3">
+      <div className="glass glass-hover relative overflow-hidden p-6 h-full">
+        {/* Top gradient line */}
+        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-brand-500/40 to-transparent" />
+
+        <div className="flex items-start justify-between mb-4">
           <div className="flex-1 min-w-0">
-            <h3 className="text-lg font-semibold text-white truncate group-hover:text-brand-400 transition-colors duration-200">
+            <h3 className="text-lg font-semibold text-white truncate group-hover:text-brand-300 transition-colors duration-200">
               {(name as string) ?? "..."}
             </h3>
-            <p className="text-slate-400 text-sm truncate">
+            <p className="text-slate-500 text-sm truncate mt-0.5">
               {(venue as string) ?? "..."}
             </p>
           </div>
           {cancelled ? (
-            <span className="text-xs bg-red-500/20 text-red-400 px-2 py-1 rounded-full ml-2 shrink-0">
+            <span className="text-[11px] font-medium bg-red-500/15 text-red-400 px-2.5 py-1 rounded-full ml-3 shrink-0 border border-red-500/20">
               Cancelled
             </span>
           ) : saleActive ? (
-            <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded-full ml-2 shrink-0">
+            <span className="text-[11px] font-medium bg-green-500/15 text-green-400 px-2.5 py-1 rounded-full ml-3 shrink-0 border border-green-500/20">
               On Sale
             </span>
           ) : (
-            <span className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded-full ml-2 shrink-0">
+            <span className="text-[11px] font-medium bg-yellow-500/15 text-yellow-400 px-2.5 py-1 rounded-full ml-3 shrink-0 border border-yellow-500/20">
               Paused
             </span>
           )}
         </div>
 
-        <div className="space-y-2 text-sm mt-4">
-          <div className="flex justify-between">
+        <div className="space-y-3 text-sm">
+          <div className="flex justify-between items-center">
             <span className="text-slate-500">Date</span>
-            <span className="text-slate-300">
+            <span className="text-white font-medium">
               {date ? relativeDate(date) : "..."}
             </span>
           </div>
-          <div className="flex justify-between">
+          <div className="flex justify-between items-center">
             <span className="text-slate-500">Price</span>
-            <span className="text-slate-300">
+            <span className="text-white font-medium">
               {price !== undefined
                 ? `${formatEther(price as bigint)} ETH`
                 : "..."}
             </span>
           </div>
-          <div className="flex justify-between">
+          <div className="flex justify-between items-center">
             <span className="text-slate-500">Remaining</span>
-            <span className="text-slate-300">
-              {remaining !== null
-                ? `${remaining} / ${maxNum}`
-                : "..."}
+            <span className="text-white font-medium">
+              {`${remaining} / ${maxNum}`}
             </span>
           </div>
         </div>
 
         {maxNum > 0 && (
-          <div className="mt-4">
-            <div className="h-1 rounded-full bg-slate-800 overflow-hidden">
+          <div className="mt-5 pt-4 border-t border-white/[0.04]">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-slate-600 text-xs">{soldPercent.toFixed(0)}% sold</span>
+              <span className="text-slate-600 text-xs">{remaining} left</span>
+            </div>
+            <div className="h-1.5 rounded-full bg-white/[0.04] overflow-hidden">
               <div
-                className="h-full rounded-full bg-brand-500 transition-all duration-500"
+                className="h-full rounded-full bg-gradient-to-r from-brand-500 to-brand-400 transition-all duration-700"
                 style={{ width: `${soldPercent}%` }}
               />
             </div>
-            <p className="text-slate-600 text-xs mt-1">
-              {soldPercent.toFixed(0)}% sold
-            </p>
           </div>
         )}
       </div>

@@ -46,8 +46,9 @@ export function OrganizerPanel({
   }, [isSuccess, reset]);
 
   return (
-    <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-6">
-      <h2 className="text-lg font-semibold text-amber-400 mb-4">
+    <div className="glass relative overflow-hidden p-6 border-amber-500/20">
+      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-amber-500/30 to-transparent" />
+      <h2 className="text-sm font-medium text-amber-400 mb-4">
         Organizer Controls
       </h2>
       <div className="flex flex-wrap gap-3">
@@ -61,7 +62,7 @@ export function OrganizerPanel({
             })
           }
           disabled={busy}
-          className="btn-press px-4 py-2 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 disabled:opacity-50 transition-colors duration-200 text-sm"
+          className="btn-press px-4 py-2 rounded-xl bg-white/[0.05] border border-white/[0.08] text-slate-300 hover:bg-white/[0.08] disabled:opacity-50 transition-all duration-200 text-sm"
         >
           {busy ? "..." : saleActive ? "Pause Sales" : "Resume Sales"}
         </button>
