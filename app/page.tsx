@@ -36,7 +36,7 @@ export default function HomePage() {
           </div>
 
           <h1
-            className="font-display text-5xl md:text-7xl font-bold tracking-tight leading-[0.95] mb-8 animate-fade-in-up"
+            className="font-display text-5xl md:text-7xl lg:text-8xl font-extrabold tracking-tight leading-[0.95] mb-8 animate-fade-in-up"
             style={{ animationDelay: "80ms" }}
           >
             <span className="gradient-text">Onchain</span>
