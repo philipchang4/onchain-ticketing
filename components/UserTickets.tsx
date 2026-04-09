@@ -103,7 +103,7 @@ export function UserTickets({
                         });
                       }}
                       disabled={busy && actionTicketId === t.ticketId}
-                      className="btn px-3 py-1.5 rounded-lg bg-brand-600 text-white text-sm hover:bg-brand-500 disabled:opacity-50"
+                      className="btn-press px-3 py-1.5 rounded-lg bg-accent-500 text-surface-950 text-sm font-medium hover:bg-accent-400 disabled:opacity-50 transition-colors duration-200"
                     >
                       {busy && actionTicketId === t.ticketId ? "..." : "Check In"}
                     </button>

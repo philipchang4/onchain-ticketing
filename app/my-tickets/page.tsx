@@ -53,7 +53,7 @@ function TicketList({ userAddress }: { userAddress: `0x${string}` }) {
         </p>
         <Link
           href="/"
-          className="inline-flex items-center px-6 py-3 rounded-lg bg-brand-600 text-white font-semibold hover:bg-brand-500 transition-colors"
+          className="btn-primary"
         >
           Browse Events
         </Link>

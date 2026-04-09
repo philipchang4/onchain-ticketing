@@ -18,7 +18,7 @@
     -moz-osx-font-smoothing: grayscale;
     background-image:
       radial-gradient(ellipse 80% 50% at 50% -20%, rgba(245, 158, 11, 0.07), transparent),
-      radial-gradient(ellipse 50% 40% at 80% 50%, rgba(139, 92, 246, 0.04), transparent);
+      radial-gradient(ellipse 50% 40% at 80% 50%, rgba(217, 119, 6, 0.03), transparent);
     min-height: 100vh;
   }
 }
