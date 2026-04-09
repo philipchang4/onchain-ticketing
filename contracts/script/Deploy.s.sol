@@ -12,7 +12,7 @@ contract Deploy is Script {
 
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
-        uint256 creationFee = vm.envOr("CREATION_FEE", uint256(1e6)); // 1 USDC
+        uint256 creationFee = vm.envOr("CREATION_FEE", uint256(1e4)); // 0.01 USDC
 
         vm.startBroadcast(deployerPrivateKey);
 

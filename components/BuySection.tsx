@@ -1,13 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import {
-  useWriteContract,
-  useWaitForTransactionReceipt,
-  useReadContract,
-  useAccount,
-} from "wagmi";
+import { useState } from "react";
+import { useReadContract, useWriteContract, useAccount, useConfig } from "wagmi";
 import { useQueryClient } from "@tanstack/react-query";
+import { waitForTransactionReceipt } from "wagmi/actions";
 import { formatUnits, maxUint256 } from "viem";
 import { eventTicketAbi } from "@/lib/abi/EventTicket";
 import { erc20Abi } from "@/lib/abi/ERC20";
@@ -21,6 +17,7 @@ export function BuySection({
   cancelled,
   remaining,
   eventPassed,
+  onPurchase,
 }: {
   address: `0x${string}`;
   price: bigint;
@@ -28,12 +25,18 @@ export function BuySection({
   cancelled: boolean;
   remaining: number;
   eventPassed: boolean;
+  onPurchase?: () => void;
 }) {
   const [quantity, setQuantity] = useState(1);
+  const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState("");
+
+  const config = useConfig();
   const { address: userAddress } = useAccount();
   const queryClient = useQueryClient();
+  const { writeContractAsync } = useWriteContract();
 
-  const { data: allowance, refetch: refetchAllowance } = useReadContract({
+  const { data: allowance } = useReadContract({
     address: USDC_ADDRESS,
     abi: erc20Abi,
     functionName: "allowance",
@@ -41,86 +44,70 @@ export function BuySection({
     query: { enabled: !!userAddress },
   });
 
-  const {
-    writeContract,
-    data: hash,
-    isPending,
-    error,
-    reset,
-  } = useWriteContract();
-  const { isLoading: isConfirming, isSuccess } =
-    useWaitForTransactionReceipt({ hash });
-
   const canBuy = saleActive && !cancelled && remaining > 0 && !eventPassed;
   const maxBuy = Math.min(remaining, 10);
   const totalPrice = price * BigInt(quantity);
   const needsApproval =
     allowance !== undefined && (allowance as bigint) < totalPrice;
 
-  useEffect(() => {
-    if (error) {
+  async function handleBuy() {
+    setBusy(true);
+    try {
+      if (needsApproval) {
+        setStatus("Approve in Wallet...");
+        const approveHash = await writeContractAsync({
+          address: USDC_ADDRESS,
+          abi: erc20Abi,
+          functionName: "approve",
+          args: [address, maxUint256],
+        });
+        setStatus("Approving USDC...");
+        await waitForTransactionReceipt(config, { hash: approveHash });
+      }
+
+      setStatus("Confirm in Wallet...");
+      let buyHash;
+      if (quantity === 1) {
+        buyHash = await writeContractAsync({
+          address,
+          abi: eventTicketAbi,
+          functionName: "buyTicket",
+        });
+      } else {
+        buyHash = await writeContractAsync({
+          address,
+          abi: eventTicketAbi,
+          functionName: "buyTickets",
+          args: [BigInt(quantity)],
+        });
+      }
+      setStatus("Confirming...");
+      await waitForTransactionReceipt(config, { hash: buyHash });
+      toast.success(
+        quantity > 1 ? `${quantity} tickets purchased!` : "Ticket purchased!"
+      );
+      queryClient.invalidateQueries();
+      onPurchase?.();
+      setQuantity(1);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "";
       toast.error(
-        error.message.includes("User rejected")
+        msg.includes("User rejected") || msg.includes("User denied")
           ? "Transaction rejected."
           : "Transaction failed."
       );
-      reset();
-    }
-  }, [error, reset]);
-
-  useEffect(() => {
-    if (isSuccess) {
-      if (needsApproval) {
-        toast.success("USDC approved! You can now buy your ticket.");
-        refetchAllowance();
-      } else {
-        toast.success(
-          quantity > 1
-            ? `${quantity} tickets purchased!`
-            : "Ticket purchased!"
-        );
-        queryClient.invalidateQueries();
-        setQuantity(1);
-      }
-      reset();
-    }
-  }, [isSuccess, needsApproval, quantity, queryClient, reset, refetchAllowance]);
-
-  function handleBuy() {
-    if (needsApproval) {
-      writeContract({
-        address: USDC_ADDRESS,
-        abi: erc20Abi,
-        functionName: "approve",
-        args: [address, maxUint256],
-      });
-      return;
-    }
-
-    if (quantity === 1) {
-      writeContract({
-        address,
-        abi: eventTicketAbi,
-        functionName: "buyTicket",
-      });
-    } else {
-      writeContract({
-        address,
-        abi: eventTicketAbi,
-        functionName: "buyTickets",
-        args: [BigInt(quantity)],
-      });
+    } finally {
+      setBusy(false);
+      setStatus("");
     }
   }
 
   function buttonLabel() {
-    if (isPending) return "Confirm in Wallet...";
-    if (isConfirming) return needsApproval ? "Approving USDC..." : "Confirming...";
+    if (status) return status;
     if (cancelled) return "Event Cancelled";
     if (!saleActive) return "Sales Paused";
     if (remaining <= 0) return "Sold Out";
     if (eventPassed) return "Event Passed";
-    if (needsApproval) return "Approve USDC";
     return quantity > 1 ? `Buy ${quantity} Tickets` : "Buy Ticket";
   }
 
@@ -138,7 +125,7 @@ export function BuySection({
         <span className="text-surface-500 text-sm">USDC / ticket</span>
       </div>
 
-      {canBuy && !needsApproval && (
+      {canBuy && !busy && (
         <div className="flex items-center gap-3 my-5">
           <span className="text-surface-400 text-sm">Qty</span>
           <div className="flex items-center rounded-xl border border-white/[0.06] overflow-hidden">
@@ -170,7 +157,7 @@ export function BuySection({
 
       <button
         onClick={handleBuy}
-        disabled={!canBuy || isPending || isConfirming}
+        disabled={!canBuy || busy}
         className="btn-primary w-full"
       >
         {buttonLabel()}

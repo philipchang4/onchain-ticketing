@@ -2,6 +2,7 @@
 
 import { useParams } from "next/navigation";
 import { useReadContracts, useAccount } from "wagmi";
+import { useQueryClient } from "@tanstack/react-query";
 import { eventTicketAbi } from "@/lib/abi/EventTicket";
 import Link from "next/link";
 import { BuySection } from "@/components/BuySection";
@@ -77,6 +78,7 @@ export default function EventDetailPage() {
   const params = useParams();
   const address = params.address as `0x${string}`;
   const { address: userAddress } = useAccount();
+  const queryClient = useQueryClient();
 
   const { data, isLoading } = useEventData(address);
 
@@ -268,6 +270,7 @@ export default function EventDetailPage() {
             cancelled={cancelled ?? false}
             remaining={remaining}
             eventPassed={eventPassed}
+            onPurchase={() => queryClient.invalidateQueries()}
           />
         )}
 
