@@ -22,6 +22,7 @@ const dmSans = DM_Sans({
 export const metadata: Metadata = {
   title: "Onchain Ticketing",
   description: "Decentralized event ticketing on Base",
+  icons: { icon: "/favicon.svg" },
 };
 
 export default function RootLayout({
