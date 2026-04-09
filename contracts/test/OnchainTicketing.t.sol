@@ -491,4 +491,86 @@ contract OnchainTicketingTest is Test {
         vm.expectRevert(EventTicket.NotOrganizer.selector);
         ticket.setSaleActive(false);
     }
+
+    // ---------------------------------------------------------------
+    //  Price changes
+    // ---------------------------------------------------------------
+
+    function test_SetPrice() public {
+        address eventAddr = _createEvent(false);
+        EventTicket ticket = EventTicket(eventAddr);
+
+        vm.prank(organizer);
+        ticket.setPrice(0.2 ether);
+        assertEq(ticket.price(), 0.2 ether);
+    }
+
+    function test_SetPrice_NotOrganizer() public {
+        address eventAddr = _createEvent(false);
+        EventTicket ticket = EventTicket(eventAddr);
+
+        vm.prank(buyer1);
+        vm.expectRevert(EventTicket.NotOrganizer.selector);
+        ticket.setPrice(0.2 ether);
+    }
+
+    function test_SetPrice_BuyAtNewPrice() public {
+        address eventAddr = _createEvent(false);
+        EventTicket ticket = EventTicket(eventAddr);
+
+        vm.prank(organizer);
+        ticket.setPrice(0.2 ether);
+
+        vm.prank(buyer1);
+        vm.expectRevert(EventTicket.InsufficientPayment.selector);
+        ticket.buyTicket{value: 0.1 ether}();
+
+        vm.prank(buyer1);
+        ticket.buyTicket{value: 0.2 ether}();
+        assertEq(ticket.ownerOf(0), buyer1);
+    }
+
+    // ---------------------------------------------------------------
+    //  Organizer redemption (venue check-in)
+    // ---------------------------------------------------------------
+
+    function test_RedeemTicketByOrganizer() public {
+        address eventAddr = _createEvent(false);
+        EventTicket ticket = EventTicket(eventAddr);
+
+        vm.prank(buyer1);
+        ticket.buyTicket{value: TICKET_PRICE}();
+
+        vm.prank(organizer);
+        ticket.redeemTicketByOrganizer(0);
+
+        assertTrue(ticket.redeemed(0));
+    }
+
+    function test_RedeemTicketByOrganizer_NotOrganizer() public {
+        address eventAddr = _createEvent(false);
+        EventTicket ticket = EventTicket(eventAddr);
+
+        vm.prank(buyer1);
+        ticket.buyTicket{value: TICKET_PRICE}();
+
+        vm.prank(buyer1);
+        vm.expectRevert(EventTicket.NotOrganizer.selector);
+        ticket.redeemTicketByOrganizer(0);
+    }
+
+    function test_RedeemTicketByOrganizer_AlreadyRedeemed() public {
+        address eventAddr = _createEvent(false);
+        EventTicket ticket = EventTicket(eventAddr);
+
+        vm.prank(buyer1);
+        ticket.buyTicket{value: TICKET_PRICE}();
+
+        vm.prank(organizer);
+        ticket.redeemTicketByOrganizer(0);
+
+        vm.prank(organizer);
+        vm.expectRevert(EventTicket.AlreadyRedeemed.selector);
+        ticket.redeemTicketByOrganizer(0);
+    }
 }

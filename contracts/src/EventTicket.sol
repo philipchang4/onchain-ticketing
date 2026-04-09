@@ -26,6 +26,7 @@ contract EventTicket is Initializable, ERC721Upgradeable {
     event RefundClaimed(uint256 indexed ticketId, address indexed holder, uint256 amount);
     event ProceedsWithdrawn(address indexed organizer, uint256 amount);
     event SaleStatusChanged(bool active);
+    event PriceChanged(uint256 newPrice);
 
     error NotOrganizer();
     error EventNotActive();
@@ -143,9 +144,22 @@ contract EventTicket is Initializable, ERC721Upgradeable {
         emit ProceedsWithdrawn(organizer, balance);
     }
 
+    function setPrice(uint256 _newPrice) external onlyOrganizer {
+        price = _newPrice;
+        emit PriceChanged(_newPrice);
+    }
+
     function setSaleActive(bool _active) external onlyOrganizer {
         saleActive = _active;
         emit SaleStatusChanged(_active);
+    }
+
+    /// @notice Lets the organizer redeem a ticket on behalf of the holder (venue check-in via QR scan).
+    function redeemTicketByOrganizer(uint256 ticketId) external onlyOrganizer {
+        ownerOf(ticketId); // reverts if token doesn't exist
+        if (redeemed[ticketId]) revert AlreadyRedeemed();
+        redeemed[ticketId] = true;
+        emit TicketRedeemed(ticketId, ownerOf(ticketId));
     }
 
     function _update(
