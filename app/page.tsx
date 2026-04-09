@@ -70,8 +70,9 @@ export default function HomePage() {
       {/* Hero -- compact when events exist */}
       <section className={`relative overflow-hidden ${hasEvents ? "py-16 md:py-20" : "py-24 md:py-36"}`}>
         <div className="absolute inset-0 -z-10">
-          <div className="absolute top-1/2 left-1/3 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] bg-accent-500/[0.07] rounded-full blur-[150px]" />
-          <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-amber-500/[0.04] rounded-full blur-[120px]" />
+          <div className="absolute top-1/2 left-1/3 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] bg-accent-500/[0.08] rounded-full blur-[150px]" />
+          <div className="absolute top-1/4 right-0 w-[500px] h-[400px] bg-violet-600/[0.05] rounded-full blur-[140px]" />
+          <div className="absolute bottom-0 left-1/4 w-[400px] h-[400px] bg-amber-500/[0.04] rounded-full blur-[120px]" />
         </div>
 
         <div className="relative">
