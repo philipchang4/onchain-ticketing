@@ -65,25 +65,6 @@ export default function HomePage() {
           </div>
         </div>
 
-        <div
-          className="mt-20 flex gap-12 animate-fade-in-up"
-          style={{ animationDelay: "320ms" }}
-        >
-          {[
-            { value: "~$0.01", label: "Mint cost" },
-            { value: "ERC-721", label: "Standard" },
-            { value: "Onchain", label: "Transfer rules" },
-          ].map((stat) => (
-            <div key={stat.label}>
-              <p className="text-surface-50 font-display font-bold text-xl">
-                {stat.value}
-              </p>
-              <p className="text-surface-500 text-xs mt-1 uppercase tracking-wider">
-                {stat.label}
-              </p>
-            </div>
-          ))}
-        </div>
       </section>
 
       {/* Events */}
