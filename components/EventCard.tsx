@@ -45,15 +45,13 @@ export function EventCard({
   });
 
   if (isLoading || !data) {
-    return <div className="skeleton h-64" />;
+    return <div className="skeleton h-72" />;
   }
 
   const [name, venue, eventDate, price, maxSupply, totalMinted, cancelled, saleActive] =
     data.map((d) => d.result);
 
-  const date = eventDate
-    ? new Date(Number(eventDate as bigint) * 1000)
-    : null;
+  const date = eventDate ? new Date(Number(eventDate as bigint) * 1000) : null;
   const maxNum = maxSupply !== undefined ? Number(maxSupply as bigint) : 0;
   const mintedNum = totalMinted !== undefined ? Number(totalMinted as bigint) : 0;
   const remaining = maxNum - mintedNum;
@@ -63,31 +61,31 @@ export function EventCard({
     <Link
       href={`/event/${address}`}
       className="animate-fade-in-up block group"
-      style={{ animationDelay: `${index * 60}ms` }}
+      style={{ animationDelay: `${index * 70}ms` }}
     >
       <div className="glass glass-hover relative overflow-hidden p-6 h-full">
-        {/* Top gradient line */}
-        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-brand-500/40 to-transparent" />
+        {/* Warm top highlight */}
+        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-accent-500/30 to-transparent" />
 
-        <div className="flex items-start justify-between mb-4">
+        <div className="flex items-start justify-between mb-5">
           <div className="flex-1 min-w-0">
-            <h3 className="text-lg font-semibold text-white truncate group-hover:text-brand-300 transition-colors duration-200">
+            <h3 className="font-display text-xl font-bold text-surface-50 truncate group-hover:text-accent-400 transition-colors duration-200">
               {(name as string) ?? "..."}
             </h3>
-            <p className="text-slate-500 text-sm truncate mt-0.5">
+            <p className="text-surface-500 text-sm truncate mt-1">
               {(venue as string) ?? "..."}
             </p>
           </div>
           {cancelled ? (
-            <span className="text-[11px] font-medium bg-red-500/15 text-red-400 px-2.5 py-1 rounded-full ml-3 shrink-0 border border-red-500/20">
+            <span className="text-[11px] font-medium bg-red-500/10 text-red-400 px-2.5 py-1 rounded-full ml-3 shrink-0 border border-red-500/15">
               Cancelled
             </span>
           ) : saleActive ? (
-            <span className="text-[11px] font-medium bg-green-500/15 text-green-400 px-2.5 py-1 rounded-full ml-3 shrink-0 border border-green-500/20">
+            <span className="text-[11px] font-medium bg-green-500/10 text-green-400 px-2.5 py-1 rounded-full ml-3 shrink-0 border border-green-500/15">
               On Sale
             </span>
           ) : (
-            <span className="text-[11px] font-medium bg-yellow-500/15 text-yellow-400 px-2.5 py-1 rounded-full ml-3 shrink-0 border border-yellow-500/20">
+            <span className="text-[11px] font-medium bg-accent-500/10 text-accent-400 px-2.5 py-1 rounded-full ml-3 shrink-0 border border-accent-500/15">
               Paused
             </span>
           )}
@@ -95,22 +93,22 @@ export function EventCard({
 
         <div className="space-y-3 text-sm">
           <div className="flex justify-between items-center">
-            <span className="text-slate-500">Date</span>
-            <span className="text-white font-medium">
+            <span className="text-surface-500">Date</span>
+            <span className="text-surface-200 font-medium">
               {date ? relativeDate(date) : "..."}
             </span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-slate-500">Price</span>
-            <span className="text-white font-medium">
+            <span className="text-surface-500">Price</span>
+            <span className="text-surface-200 font-medium">
               {price !== undefined
                 ? `${formatEther(price as bigint)} ETH`
                 : "..."}
             </span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-slate-500">Remaining</span>
-            <span className="text-white font-medium">
+            <span className="text-surface-500">Remaining</span>
+            <span className="text-surface-200 font-medium">
               {`${remaining} / ${maxNum}`}
             </span>
           </div>
@@ -119,13 +117,18 @@ export function EventCard({
         {maxNum > 0 && (
           <div className="mt-5 pt-4 border-t border-white/[0.04]">
             <div className="flex justify-between items-center mb-2">
-              <span className="text-slate-600 text-xs">{soldPercent.toFixed(0)}% sold</span>
-              <span className="text-slate-600 text-xs">{remaining} left</span>
+              <span className="text-surface-600 text-xs">
+                {soldPercent.toFixed(0)}% sold
+              </span>
+              <span className="text-surface-600 text-xs">{remaining} left</span>
             </div>
             <div className="h-1.5 rounded-full bg-white/[0.04] overflow-hidden">
               <div
-                className="h-full rounded-full bg-gradient-to-r from-brand-500 to-brand-400 transition-all duration-700"
-                style={{ width: `${soldPercent}%` }}
+                className="h-full rounded-full transition-all duration-700"
+                style={{
+                  width: `${soldPercent}%`,
+                  background: "linear-gradient(90deg, #f59e0b, #fbbf24)",
+                }}
               />
             </div>
           </div>

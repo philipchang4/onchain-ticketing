@@ -132,23 +132,23 @@ export default function EventDetailPage() {
     <div className="mx-auto max-w-3xl px-6 py-16 animate-fade-in">
       <Link
         href="/"
-        className="text-slate-500 hover:text-white text-sm inline-flex items-center gap-1 transition-colors duration-200 mb-8"
+        className="text-surface-500 hover:text-surface-200 text-sm inline-flex items-center gap-1 transition-colors duration-200 mb-8"
       >
         &larr; Back to events
       </Link>
 
       {/* Event header */}
       <div className="glass relative overflow-hidden p-8 mb-8">
-        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-brand-500/50 to-transparent" />
-        <div className="absolute -top-24 -right-24 w-48 h-48 bg-brand-500/10 rounded-full blur-[80px]" />
+        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-accent-500/40 to-transparent" />
+        <div className="absolute -top-24 -right-24 w-48 h-48 bg-accent-500/[0.07] rounded-full blur-[80px]" />
 
         <div className="relative flex items-start justify-between">
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
+            <h1 className="font-display text-3xl md:text-4xl font-extrabold text-surface-50 mb-2">
               {name ?? "..."}
             </h1>
-            <p className="text-slate-400 text-lg flex items-center gap-2">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-500">
+            <p className="text-surface-400 text-lg flex items-center gap-2">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-surface-500">
                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
                 <circle cx="12" cy="10" r="3" />
               </svg>
@@ -226,11 +226,11 @@ export default function EventDetailPage() {
             className="glass p-4 animate-fade-in-up"
             style={{ animationDelay: `${i * 50}ms` }}
           >
-            <div className="flex items-center gap-1.5 text-slate-500 text-xs mb-1.5">
+            <div className="flex items-center gap-1.5 text-surface-500 text-xs mb-1.5">
               {item.icon}
               {item.label}
             </div>
-            <p className="text-white font-semibold">{item.value}</p>
+            <p className="text-surface-50 font-semibold">{item.value}</p>
           </div>
         ))}
       </div>
@@ -239,13 +239,13 @@ export default function EventDetailPage() {
       {maxNum > 0 && (
         <div className="glass p-4 mb-8">
           <div className="flex justify-between items-center mb-2">
-            <span className="text-slate-400 text-sm">Tickets sold</span>
-            <span className="text-white text-sm font-medium">{soldPercent.toFixed(0)}%</span>
+            <span className="text-surface-400 text-sm">Tickets sold</span>
+            <span className="text-surface-50 text-sm font-medium">{soldPercent.toFixed(0)}%</span>
           </div>
           <div className="h-2 rounded-full bg-white/[0.04] overflow-hidden">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-brand-600 to-brand-400 transition-all duration-700"
-              style={{ width: `${soldPercent}%` }}
+              className="h-full rounded-full transition-all duration-700"
+              style={{ width: `${soldPercent}%`, background: "linear-gradient(90deg, #f59e0b, #fbbf24)" }}
             />
           </div>
         </div>
@@ -279,12 +279,12 @@ export default function EventDetailPage() {
       </div>
 
       <div className="mt-10 glass p-4 flex items-center justify-between">
-        <span className="text-slate-500 text-xs">Contract</span>
+        <span className="text-surface-500 text-xs">Contract</span>
         <a
           href={`${BASESCAN_URL}/address/${address}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-brand-400 hover:text-brand-300 text-xs font-mono transition-colors duration-200 flex items-center gap-1"
+          className="text-accent-400 hover:text-accent-300 text-xs font-mono transition-colors duration-200 flex items-center gap-1"
         >
           {address.slice(0, 6)}...{address.slice(-4)}
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

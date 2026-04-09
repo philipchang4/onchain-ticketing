@@ -53,14 +53,16 @@ export function BuySection({
 
   return (
     <div className="glass relative overflow-hidden p-6">
-      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-brand-500/30 to-transparent" />
+      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-accent-500/25 to-transparent" />
 
-      <h2 className="text-sm font-medium text-slate-400 mb-3">Purchase</h2>
+      <h2 className="text-sm font-medium text-surface-400 mb-3 uppercase tracking-wider">
+        Purchase
+      </h2>
       <div className="flex items-baseline gap-2 mb-6">
-        <span className="text-4xl font-bold text-white">
+        <span className="font-display text-4xl font-bold text-surface-50">
           {formatEther(price)}
         </span>
-        <span className="text-slate-500 text-sm">ETH / ticket</span>
+        <span className="text-surface-500 text-sm">ETH / ticket</span>
       </div>
 
       <button

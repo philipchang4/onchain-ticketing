@@ -86,15 +86,24 @@ export default function CreateEventPage() {
       <div className="mb-10">
         <Link
           href="/"
-          className="text-slate-500 hover:text-white text-sm inline-flex items-center gap-1 transition-colors duration-200 mb-6"
+          className="text-surface-500 hover:text-surface-200 text-sm inline-flex items-center gap-1 transition-colors duration-200 mb-6"
         >
           &larr; Back
         </Link>
-        <h1 className="text-4xl font-bold gradient-text mb-3">Create Event</h1>
-        <p className="text-slate-400">
+        <h1 className="font-display text-4xl md:text-5xl font-extrabold gradient-text mb-3">
+          Create Event
+        </h1>
+        <p className="text-surface-400">
           Deploy a new event contract on Base Sepolia.
           {creationFee !== undefined && (
-            <span className="inline-flex items-center gap-1 ml-2 px-2 py-0.5 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-300 text-xs font-medium">
+            <span
+              className="inline-flex items-center gap-1 ml-2 px-2 py-0.5 rounded-full text-xs font-medium"
+              style={{
+                background: "rgba(245, 158, 11, 0.08)",
+                border: "1px solid rgba(245, 158, 11, 0.15)",
+                color: "#fbbf24",
+              }}
+            >
               Fee: {formatEther(creationFee)} ETH
             </span>
           )}
@@ -102,18 +111,18 @@ export default function CreateEventPage() {
       </div>
 
       {isSuccess ? (
-        <div className="glass p-10 text-center animate-fade-in-up glow-sm">
-          <div className="w-14 h-14 mx-auto mb-5 rounded-2xl bg-green-500/10 border border-green-500/20 flex items-center justify-center">
+        <div className="glass p-10 text-center animate-fade-in-up relative overflow-hidden">
+          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-green-500/30 to-transparent" />
+          <div className="w-14 h-14 mx-auto mb-5 rounded-2xl bg-green-500/10 border border-green-500/15 flex items-center justify-center">
             <svg className="text-green-400" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M20 6L9 17l-5-5" />
             </svg>
           </div>
-          <h2 className="text-xl font-semibold text-white mb-2">
+          <h2 className="font-display text-xl font-bold text-surface-50 mb-2">
             Event Created
           </h2>
-          <p className="text-slate-400 mb-8 max-w-sm mx-auto">
-            Your event contract has been deployed. It will appear on the home
-            page shortly.
+          <p className="text-surface-400 mb-8 max-w-sm mx-auto">
+            Your event contract has been deployed successfully.
           </p>
           <div className="flex gap-3 justify-center">
             <Link href="/" className="btn-primary">
@@ -136,10 +145,12 @@ export default function CreateEventPage() {
           </div>
         </div>
       ) : (
-        <div className="glass p-8">
+        <div className="glass relative overflow-hidden p-8">
+          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-accent-500/20 to-transparent" />
+
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
+              <label className="block text-sm font-medium text-surface-300 mb-2">
                 Event Name
               </label>
               <input
@@ -153,7 +164,7 @@ export default function CreateEventPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
+              <label className="block text-sm font-medium text-surface-300 mb-2">
                 Venue
               </label>
               <input
@@ -167,7 +178,7 @@ export default function CreateEventPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
+              <label className="block text-sm font-medium text-surface-300 mb-2">
                 Date &amp; Time
               </label>
               <input
@@ -182,7 +193,7 @@ export default function CreateEventPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
+                <label className="block text-sm font-medium text-surface-300 mb-2">
                   Ticket Price (ETH)
                 </label>
                 <input
@@ -197,7 +208,7 @@ export default function CreateEventPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
+                <label className="block text-sm font-medium text-surface-300 mb-2">
                   Max Tickets
                 </label>
                 <input
@@ -214,19 +225,26 @@ export default function CreateEventPage() {
 
             <label
               htmlFor="transferable"
-              className="flex items-start gap-3 p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] cursor-pointer transition-colors duration-200 hover:border-white/[0.12]"
+              className="flex items-start gap-3 p-4 rounded-xl cursor-pointer transition-all duration-200 hover:bg-white/[0.02]"
+              style={{
+                background: "rgba(255, 255, 255, 0.02)",
+                border: "1px solid rgba(255, 255, 255, 0.05)",
+              }}
             >
               <input
                 type="checkbox"
                 id="transferable"
                 checked={transferable}
                 onChange={(e) => setTransferable(e.target.checked)}
-                className="mt-0.5 w-4 h-4 rounded border-slate-600 text-brand-600 focus:ring-brand-500 bg-transparent"
+                className="mt-0.5 w-4 h-4 rounded border-surface-600 text-accent-500 focus:ring-accent-500 bg-transparent accent-amber-500"
               />
               <div className="text-sm">
-                <span className="font-medium text-white">Allow transfers</span>
-                <span className="text-slate-500 block mt-0.5">
-                  If disabled, tickets are soulbound and cannot be transferred or resold.
+                <span className="font-medium text-surface-100">
+                  Allow transfers
+                </span>
+                <span className="text-surface-500 block mt-0.5">
+                  If disabled, tickets are soulbound and cannot be transferred
+                  or resold.
                 </span>
               </div>
             </label>

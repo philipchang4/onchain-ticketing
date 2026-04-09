@@ -55,7 +55,7 @@ export function OrganizerPanel({
   return (
     <div className="glass relative overflow-hidden p-6 border-amber-500/20">
       <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-amber-500/30 to-transparent" />
-      <h2 className="text-sm font-medium text-amber-400 mb-4">
+      <h2 className="text-sm font-medium text-accent-400 mb-4 uppercase tracking-wider">
         Organizer Controls
       </h2>
       <div className="flex flex-wrap gap-3 mb-4">
@@ -69,20 +69,20 @@ export function OrganizerPanel({
             })
           }
           disabled={busy}
-          className="btn px-4 py-2 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 disabled:opacity-50 text-sm"
+          className="btn-press px-4 py-2 rounded-xl bg-white/[0.05] border border-white/[0.08] text-surface-300 hover:bg-white/[0.08] hover:border-accent-500/20 disabled:opacity-50 transition-all duration-200 text-sm"
         >
           {busy ? "..." : saleActive ? "Pause Sales" : "Resume Sales"}
         </button>
 
         <button
           onClick={() => setShowPriceInput(!showPriceInput)}
-          className="btn px-4 py-2 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 text-sm"
+          className="btn-press px-4 py-2 rounded-xl bg-white/[0.05] border border-white/[0.08] text-surface-300 hover:bg-white/[0.08] hover:border-accent-500/20 transition-all duration-200 text-sm"
         >
           Change Price
         </button>
 
         {confirmCancel ? (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 animate-fade-in">
             <span className="text-red-400 text-sm">Are you sure?</span>
             <button
               onClick={() =>
@@ -93,13 +93,13 @@ export function OrganizerPanel({
                 })
               }
               disabled={busy}
-              className="btn px-3 py-1.5 rounded-lg bg-red-600 text-white text-sm hover:bg-red-500 disabled:opacity-50"
+              className="btn-press px-3 py-1.5 rounded-lg bg-red-600 text-white text-sm hover:bg-red-500 disabled:opacity-50 transition-colors duration-200"
             >
               Yes, Cancel Event
             </button>
             <button
               onClick={() => setConfirmCancel(false)}
-              className="btn px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 text-sm hover:bg-slate-700"
+              className="btn-press px-3 py-1.5 rounded-lg bg-surface-800 text-surface-300 text-sm hover:bg-surface-700 transition-colors duration-200"
             >
               No
             </button>
@@ -108,7 +108,7 @@ export function OrganizerPanel({
           <button
             onClick={() => setConfirmCancel(true)}
             disabled={busy}
-            className="btn px-4 py-2 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 disabled:opacity-50 text-sm"
+            className="btn-press px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/15 text-red-400 hover:bg-red-500/20 disabled:opacity-50 transition-all duration-200 text-sm"
           >
             Cancel Event
           </button>
@@ -123,16 +123,16 @@ export function OrganizerPanel({
             })
           }
           disabled={busy}
-          className="btn px-4 py-2 rounded-lg bg-green-500/20 text-green-400 hover:bg-green-500/30 disabled:opacity-50 text-sm"
+          className="btn-press px-4 py-2 rounded-xl bg-green-500/10 border border-green-500/15 text-green-400 hover:bg-green-500/20 disabled:opacity-50 transition-all duration-200 text-sm"
         >
           Withdraw Proceeds
         </button>
       </div>
 
       {showPriceInput && (
-        <div className="flex items-end gap-3 pt-3 border-t border-amber-500/20">
+        <div className="flex items-end gap-3 pt-4 border-t border-white/[0.04] animate-fade-in">
           <div className="flex-1">
-            <label className="block text-xs text-slate-400 mb-1">
+            <label className="block text-xs text-surface-400 mb-1.5">
               New price (current: {formatEther(currentPrice)} ETH)
             </label>
             <input
@@ -142,7 +142,7 @@ export function OrganizerPanel({
               value={newPrice}
               onChange={(e) => setNewPrice(e.target.value)}
               placeholder="0.001"
-              className="w-full rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-white text-sm focus:outline-none focus:border-brand-500"
+              className="input-field !py-2 !text-sm"
             />
           </div>
           <button
@@ -156,7 +156,7 @@ export function OrganizerPanel({
               });
             }}
             disabled={busy || !newPrice}
-            className="btn px-4 py-2 rounded-lg bg-brand-600 text-white text-sm hover:bg-brand-500 disabled:opacity-50"
+            className="btn-primary !py-2 !px-4 !text-sm"
           >
             {busy ? "..." : "Update"}
           </button>

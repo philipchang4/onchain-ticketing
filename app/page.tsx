@@ -16,30 +16,46 @@ export default function HomePage() {
   return (
     <div className="mx-auto max-w-7xl px-6">
       {/* Hero */}
-      <section className="relative py-20 md:py-28 overflow-hidden">
+      <section className="relative py-24 md:py-36 overflow-hidden">
         <div className="absolute inset-0 -z-10">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-brand-500/10 rounded-full blur-[120px]" />
-          <div className="absolute top-1/3 right-1/4 w-[300px] h-[300px] bg-blue-500/8 rounded-full blur-[100px]" />
+          <div className="absolute top-1/2 left-1/3 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] bg-accent-500/[0.07] rounded-full blur-[150px]" />
+          <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-violet-500/[0.04] rounded-full blur-[120px]" />
         </div>
 
-        <div className="relative animate-fade-in-up">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-300 text-xs font-medium mb-6">
+        <div className="relative">
+          <div
+            className="animate-fade-in-up inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-medium mb-8"
+            style={{
+              background: "rgba(245, 158, 11, 0.06)",
+              borderColor: "rgba(245, 158, 11, 0.15)",
+              color: "#fbbf24",
+            }}
+          >
             <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
             Live on Base Sepolia
           </div>
 
-          <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-6">
+          <h1
+            className="font-display text-6xl md:text-8xl lg:text-9xl font-extrabold tracking-tight leading-[0.9] mb-8 animate-fade-in-up"
+            style={{ animationDelay: "80ms" }}
+          >
             <span className="gradient-text">Onchain</span>
             <br />
-            <span className="text-white">Ticketing</span>
+            <span className="text-surface-50">Ticketing</span>
           </h1>
 
-          <p className="text-slate-400 text-lg md:text-xl max-w-xl leading-relaxed mb-10">
-            Transparent pricing. Counterfeit-proof tickets. Code-enforced rules.
-            No middleman.
+          <p
+            className="text-surface-400 text-lg md:text-xl max-w-lg leading-relaxed mb-12 animate-fade-in-up"
+            style={{ animationDelay: "160ms" }}
+          >
+            Transparent pricing. Counterfeit-proof tickets.
+            Code-enforced rules. No middleman.
           </p>
 
-          <div className="flex flex-wrap gap-4">
+          <div
+            className="flex flex-wrap gap-4 animate-fade-in-up"
+            style={{ animationDelay: "240ms" }}
+          >
             <Link href="/create" className="btn-primary">
               Create Event
             </Link>
@@ -49,32 +65,44 @@ export default function HomePage() {
           </div>
         </div>
 
-        <div className="mt-16 grid grid-cols-3 gap-6 max-w-lg animate-fade-in-up" style={{ animationDelay: "150ms" }}>
+        <div
+          className="mt-20 flex gap-12 animate-fade-in-up"
+          style={{ animationDelay: "320ms" }}
+        >
           {[
-            { label: "Mint cost", value: "~$0.01" },
-            { label: "Ownership", value: "ERC-721" },
-            { label: "Transfer rules", value: "Onchain" },
+            { value: "~$0.01", label: "Mint cost" },
+            { value: "ERC-721", label: "Standard" },
+            { value: "Onchain", label: "Transfer rules" },
           ].map((stat) => (
-            <div key={stat.label} className="text-center">
-              <p className="text-white font-semibold text-lg">{stat.value}</p>
-              <p className="text-slate-500 text-xs mt-0.5">{stat.label}</p>
+            <div key={stat.label}>
+              <p className="text-surface-50 font-display font-bold text-xl">
+                {stat.value}
+              </p>
+              <p className="text-surface-500 text-xs mt-1 uppercase tracking-wider">
+                {stat.label}
+              </p>
             </div>
           ))}
         </div>
       </section>
 
       {/* Events */}
-      <section id="events" className="pb-20">
-        <div className="flex items-center justify-between mb-8">
-          <h2 className="text-2xl font-bold text-white">
-            {events && events.length > 0 ? "Events" : ""}
-          </h2>
-        </div>
+      <section id="events" className="pb-24">
+        {events && events.length > 0 && (
+          <div className="flex items-baseline justify-between mb-10">
+            <h2 className="font-display text-2xl font-bold text-surface-50">
+              Events
+            </h2>
+            <span className="text-surface-500 text-sm">
+              {events.length} total
+            </span>
+          </div>
+        )}
 
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="skeleton h-64" />
+              <div key={i} className="skeleton h-72" />
             ))}
           </div>
         ) : events && events.length > 0 ? (
@@ -84,10 +112,16 @@ export default function HomePage() {
             ))}
           </div>
         ) : (
-          <div className="glass text-center py-20 px-6 animate-fade-in">
-            <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center">
+          <div className="glass text-center py-24 px-6 animate-fade-in">
+            <div
+              className="w-16 h-16 mx-auto mb-6 rounded-2xl flex items-center justify-center"
+              style={{
+                background: "rgba(245, 158, 11, 0.08)",
+                border: "1px solid rgba(245, 158, 11, 0.15)",
+              }}
+            >
               <svg
-                className="text-brand-400"
+                className="text-accent-400"
                 width="28"
                 height="28"
                 viewBox="0 0 24 24"
@@ -100,13 +134,14 @@ export default function HomePage() {
                 <path d="M12 5v14M5 12h14" />
               </svg>
             </div>
-            <p className="text-white font-medium text-lg mb-2">
+            <p className="text-surface-50 font-display font-bold text-xl mb-2">
               No events yet
             </p>
-            <p className="text-slate-500 text-sm mb-8 max-w-sm mx-auto">
-              Deploy the first onchain event with transparent pricing and code-enforced ticket rules.
+            <p className="text-surface-500 text-sm mb-10 max-w-sm mx-auto">
+              Deploy the first onchain event with transparent pricing and
+              code-enforced ticket rules.
             </p>
-            <Link href="/create" className="btn-primary inline-flex">
+            <Link href="/create" className="btn-primary">
               Create Event
             </Link>
           </div>

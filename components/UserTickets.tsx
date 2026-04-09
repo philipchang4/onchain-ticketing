@@ -52,8 +52,8 @@ export function UserTickets({
 
   return (
     <div className="glass relative overflow-hidden p-6">
-      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-brand-500/30 to-transparent" />
-      <h2 className="text-sm font-medium text-slate-400 mb-4">
+      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-accent-500/25 to-transparent" />
+      <h2 className="text-sm font-medium text-surface-400 mb-4 uppercase tracking-wider">
         Your Tickets ({tickets.length})
       </h2>
       <div className="space-y-3">
