@@ -48,15 +48,16 @@ export function UserTickets({
   if (tickets.length === 0) return null;
 
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900 p-6">
-      <h2 className="text-lg font-semibold text-white mb-4">
+    <div className="glass relative overflow-hidden p-6">
+      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-brand-500/30 to-transparent" />
+      <h2 className="text-sm font-medium text-slate-400 mb-4">
         Your Tickets ({tickets.length})
       </h2>
       <div className="space-y-3">
         {tickets.map((t) => (
           <div
             key={t.ticketId}
-            className="flex items-center justify-between p-4 rounded-lg bg-slate-800/50 border border-slate-700"
+            className="flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-white/[0.06]"
           >
             <div>
               <span className="text-white font-mono text-sm">

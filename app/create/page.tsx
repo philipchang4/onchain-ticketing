@@ -81,36 +81,42 @@ export default function CreateEventPage() {
     });
   }
 
-  const inputClass =
-    "w-full rounded-lg bg-slate-800 border border-slate-700 px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-colors duration-200";
-
   return (
-    <div className="mx-auto max-w-2xl px-6 py-12 animate-fade-in">
-      <h1 className="text-3xl font-bold text-white mb-2">Create Event</h1>
-      <p className="text-slate-400 mb-8">
-        Deploy a new event contract on Base Sepolia.
-        {creationFee !== undefined && (
-          <span className="text-slate-300">
-            {" "}
-            Creation fee: {formatEther(creationFee)} ETH
-          </span>
-        )}
-      </p>
+    <div className="mx-auto max-w-2xl px-6 py-16 animate-fade-in">
+      <div className="mb-10">
+        <Link
+          href="/"
+          className="text-slate-500 hover:text-white text-sm inline-flex items-center gap-1 transition-colors duration-200 mb-6"
+        >
+          &larr; Back
+        </Link>
+        <h1 className="text-4xl font-bold gradient-text mb-3">Create Event</h1>
+        <p className="text-slate-400">
+          Deploy a new event contract on Base Sepolia.
+          {creationFee !== undefined && (
+            <span className="inline-flex items-center gap-1 ml-2 px-2 py-0.5 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-300 text-xs font-medium">
+              Fee: {formatEther(creationFee)} ETH
+            </span>
+          )}
+        </p>
+      </div>
 
       {isSuccess ? (
-        <div className="rounded-xl bg-green-500/10 border border-green-500/20 p-8 text-center animate-fade-in-up">
-          <h2 className="text-xl font-semibold text-green-400 mb-2">
+        <div className="glass p-10 text-center animate-fade-in-up glow-sm">
+          <div className="w-14 h-14 mx-auto mb-5 rounded-2xl bg-green-500/10 border border-green-500/20 flex items-center justify-center">
+            <svg className="text-green-400" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 6L9 17l-5-5" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-semibold text-white mb-2">
             Event Created
           </h2>
-          <p className="text-slate-400 mb-4">
+          <p className="text-slate-400 mb-8 max-w-sm mx-auto">
             Your event contract has been deployed. It will appear on the home
             page shortly.
           </p>
-          <div className="flex gap-4 justify-center">
-            <Link
-              href="/"
-              className="btn-press px-6 py-2 rounded-lg bg-brand-600 text-white font-semibold hover:bg-brand-500 transition-colors duration-200"
-            >
+          <div className="flex gap-3 justify-center">
+            <Link href="/" className="btn-primary">
               View Events
             </Link>
             <button
@@ -123,116 +129,121 @@ export default function CreateEventPage() {
                 setMaxSupply("");
                 setTransferable(false);
               }}
-              className="btn-press px-6 py-2 rounded-lg bg-slate-800 text-white hover:bg-slate-700 transition-colors duration-200"
+              className="btn-secondary"
             >
               Create Another
             </button>
           </div>
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label className="block text-sm font-medium text-slate-400 mb-2">
-              Event Name
-            </label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Summer Music Festival 2026"
-              className={inputClass}
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-400 mb-2">
-              Venue
-            </label>
-            <input
-              type="text"
-              value={venue}
-              onChange={(e) => setVenue(e.target.value)}
-              placeholder="Madison Square Garden, NYC"
-              className={inputClass}
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-400 mb-2">
-              Date &amp; Time
-            </label>
-            <input
-              type="datetime-local"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              min={minDate}
-              className={inputClass}
-              required
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
+        <div className="glass p-8">
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-slate-400 mb-2">
-                Ticket Price (ETH)
+              <label className="block text-sm font-medium text-slate-300 mb-2">
+                Event Name
               </label>
               <input
-                type="number"
-                step="0.000001"
-                min="0"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                placeholder="0.0001"
-                className={inputClass}
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Summer Music Festival 2026"
+                className="input-field"
                 required
               />
             </div>
+
             <div>
-              <label className="block text-sm font-medium text-slate-400 mb-2">
-                Max Tickets
+              <label className="block text-sm font-medium text-slate-300 mb-2">
+                Venue
               </label>
               <input
-                type="number"
-                min="1"
-                value={maxSupply}
-                onChange={(e) => setMaxSupply(e.target.value)}
-                placeholder="100"
-                className={inputClass}
+                type="text"
+                value={venue}
+                onChange={(e) => setVenue(e.target.value)}
+                placeholder="Madison Square Garden, NYC"
+                className="input-field"
                 required
               />
             </div>
-          </div>
 
-          <div className="flex items-center gap-3 p-4 rounded-lg bg-slate-800/50 border border-slate-700">
-            <input
-              type="checkbox"
-              id="transferable"
-              checked={transferable}
-              onChange={(e) => setTransferable(e.target.checked)}
-              className="w-4 h-4 rounded border-slate-600 text-brand-600 focus:ring-brand-500"
-            />
-            <label htmlFor="transferable" className="text-sm text-slate-300">
-              <span className="font-medium">Allow transfers</span>
-              <span className="text-slate-500 block">
-                If disabled, tickets cannot be transferred or resold.
-              </span>
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">
+                Date &amp; Time
+              </label>
+              <input
+                type="datetime-local"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                min={minDate}
+                className="input-field"
+                required
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Ticket Price (ETH)
+                </label>
+                <input
+                  type="number"
+                  step="0.000001"
+                  min="0"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  placeholder="0.0001"
+                  className="input-field"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Max Tickets
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  value={maxSupply}
+                  onChange={(e) => setMaxSupply(e.target.value)}
+                  placeholder="100"
+                  className="input-field"
+                  required
+                />
+              </div>
+            </div>
+
+            <label
+              htmlFor="transferable"
+              className="flex items-start gap-3 p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] cursor-pointer transition-colors duration-200 hover:border-white/[0.12]"
+            >
+              <input
+                type="checkbox"
+                id="transferable"
+                checked={transferable}
+                onChange={(e) => setTransferable(e.target.checked)}
+                className="mt-0.5 w-4 h-4 rounded border-slate-600 text-brand-600 focus:ring-brand-500 bg-transparent"
+              />
+              <div className="text-sm">
+                <span className="font-medium text-white">Allow transfers</span>
+                <span className="text-slate-500 block mt-0.5">
+                  If disabled, tickets are soulbound and cannot be transferred or resold.
+                </span>
+              </div>
             </label>
-          </div>
 
-          <button
-            type="submit"
-            disabled={isPending || isConfirming}
-            className="btn-press w-full rounded-lg bg-brand-600 px-4 py-3.5 font-semibold text-white hover:bg-brand-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
-          >
-            {isPending
-              ? "Confirm in Wallet..."
-              : isConfirming
-                ? "Deploying..."
-                : "Create Event"}
-          </button>
-        </form>
+            <button
+              type="submit"
+              disabled={isPending || isConfirming}
+              className="btn-primary w-full"
+            >
+              {isPending
+                ? "Confirm in Wallet..."
+                : isConfirming
+                  ? "Deploying..."
+                  : "Create Event"}
+            </button>
+          </form>
+        </div>
       )}
     </div>
   );
