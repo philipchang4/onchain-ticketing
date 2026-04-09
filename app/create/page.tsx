@@ -102,14 +102,15 @@ export default function CreateEventPage() {
       formData.append("file", file);
       const res = await fetch("/api/upload", { method: "POST", body: formData });
       const data = await res.json();
-      if (data.url) {
+      if (res.ok && data.url) {
         setImageUrl(data.url);
+        toast.success("Image uploaded!");
       } else {
-        toast.error(data.error || "Upload failed");
-        setImagePreview("");
+        throw new Error(data.error || `Upload failed (${res.status})`);
       }
-    } catch {
-      toast.error("Upload failed");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Upload failed";
+      toast.error(msg);
       setImagePreview("");
     } finally {
       setUploading(false);
