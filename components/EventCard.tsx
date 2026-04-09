@@ -77,15 +77,15 @@ export function EventCard({
             </p>
           </div>
           {cancelled ? (
-            <span className="text-[11px] font-medium bg-red-500/10 text-red-400 px-2.5 py-1 rounded-full ml-3 shrink-0 border border-red-500/15">
+            <span className="text-[11px] font-medium bg-red-500/10 text-red-400 px-2.5 py-1 rounded-md ml-3 shrink-0 border border-red-500/15">
               Cancelled
             </span>
           ) : saleActive ? (
-            <span className="text-[11px] font-medium bg-green-500/10 text-green-400 px-2.5 py-1 rounded-full ml-3 shrink-0 border border-green-500/15">
+            <span className="text-[11px] font-medium bg-green-500/10 text-green-400 px-2.5 py-1 rounded-md ml-3 shrink-0 border border-green-500/15">
               On Sale
             </span>
           ) : (
-            <span className="text-[11px] font-medium bg-accent-500/10 text-accent-400 px-2.5 py-1 rounded-full ml-3 shrink-0 border border-accent-500/15">
+            <span className="text-[11px] font-medium bg-accent-500/10 text-accent-400 px-2.5 py-1 rounded-md ml-3 shrink-0 border border-accent-500/15">
               Paused
             </span>
           )}
