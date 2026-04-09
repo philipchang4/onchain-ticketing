@@ -7,12 +7,16 @@ import {
   useReadContract,
   useAccount,
 } from "wagmi";
-import { parseUnits, formatUnits, maxUint256 } from "viem";
+import { useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
+import { parseUnits, formatUnits, decodeEventLog, maxUint256 } from "viem";
 import { ticketFactoryAbi } from "@/lib/abi/TicketFactory";
 import { erc20Abi } from "@/lib/abi/ERC20";
 import { FACTORY_ADDRESS, USDC_ADDRESS } from "@/lib/contracts";
 import Link from "next/link";
 import { toast } from "sonner";
+
+type FieldErrors = Partial<Record<"name" | "venue" | "date" | "price" | "maxSupply", string>>;
 
 export default function CreateEventPage() {
   const [name, setName] = useState("");
@@ -21,8 +25,12 @@ export default function CreateEventPage() {
   const [price, setPrice] = useState("");
   const [maxSupply, setMaxSupply] = useState("");
   const [transferable, setTransferable] = useState(false);
+  const [errors, setErrors] = useState<FieldErrors>({});
+  const [touched, setTouched] = useState<Set<string>>(new Set());
 
   const { address: userAddress } = useAccount();
+  const router = useRouter();
+  const queryClient = useQueryClient();
 
   const { data: creationFee } = useReadContract({
     address: FACTORY_ADDRESS,
@@ -45,7 +53,7 @@ export default function CreateEventPage() {
     error,
     reset,
   } = useWriteContract();
-  const { isLoading: isConfirming, isSuccess } =
+  const { isLoading: isConfirming, isSuccess, data: receipt } =
     useWaitForTransactionReceipt({ hash });
 
   const needsApproval =
@@ -70,13 +78,76 @@ export default function CreateEventPage() {
         toast.success("USDC approved! You can now create your event.");
         refetchAllowance();
         reset();
-      } else {
-        toast.success("Event created! It will appear on the home page shortly.");
+        return;
       }
-    }
-  }, [isSuccess, needsApproval, reset, refetchAllowance]);
 
-  const minDate = new Date().toISOString().slice(0, 16);
+      queryClient.invalidateQueries();
+
+      if (receipt) {
+        try {
+          const eventLog = receipt.logs.find((log) => {
+            try {
+              const decoded = decodeEventLog({
+                abi: ticketFactoryAbi,
+                data: log.data,
+                topics: log.topics,
+              });
+              return decoded.eventName === "EventCreated";
+            } catch {
+              return false;
+            }
+          });
+
+          if (eventLog) {
+            const decoded = decodeEventLog({
+              abi: ticketFactoryAbi,
+              data: eventLog.data,
+              topics: eventLog.topics,
+            });
+            const newAddress = (decoded.args as { eventAddress: string }).eventAddress;
+            toast.success("Event created! Redirecting...");
+            router.push(`/event/${newAddress}`);
+            return;
+          }
+        } catch {
+          // Fall through
+        }
+      }
+      toast.success("Event created!");
+    }
+  }, [isSuccess, needsApproval, receipt, queryClient, router, refetchAllowance, reset]);
+
+  function validate(field: string, value: string): string | undefined {
+    switch (field) {
+      case "name":
+        return value.trim() ? undefined : "Event name is required";
+      case "venue":
+        return value.trim() ? undefined : "Venue is required";
+      case "date":
+        if (!value) return "Date is required";
+        return new Date(value) > new Date() ? undefined : "Must be a future date";
+      case "price":
+        if (!value) return "Price is required";
+        return Number(value) >= 0 ? undefined : "Price must be 0 or more";
+      case "maxSupply":
+        if (!value) return "Required";
+        return Number(value) >= 1 ? undefined : "Must be at least 1";
+      default:
+        return undefined;
+    }
+  }
+
+  function handleBlur(field: keyof FieldErrors, value: string) {
+    setTouched((prev) => new Set(prev).add(field));
+    const err = validate(field, value);
+    setErrors((prev) => ({ ...prev, [field]: err }));
+  }
+
+  function clearError(field: keyof FieldErrors) {
+    if (errors[field]) {
+      setErrors((prev) => ({ ...prev, [field]: undefined }));
+    }
+  }
 
   function handleApprove() {
     writeContract({
@@ -87,6 +158,8 @@ export default function CreateEventPage() {
     });
   }
 
+  const minDate = new Date().toISOString().slice(0, 16);
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
@@ -95,13 +168,19 @@ export default function CreateEventPage() {
       return;
     }
 
-    const selectedDate = new Date(date);
-    if (selectedDate <= new Date()) {
-      toast.error("Event date must be in the future.");
-      return;
-    }
+    const newErrors: FieldErrors = {
+      name: validate("name", name),
+      venue: validate("venue", venue),
+      date: validate("date", date),
+      price: validate("price", price),
+      maxSupply: validate("maxSupply", maxSupply),
+    };
+    setErrors(newErrors);
+    setTouched(new Set(["name", "venue", "date", "price", "maxSupply"]));
 
-    const dateTimestamp = BigInt(Math.floor(selectedDate.getTime() / 1000));
+    if (Object.values(newErrors).some(Boolean)) return;
+
+    const dateTimestamp = BigInt(Math.floor(new Date(date).getTime() / 1000));
 
     writeContract({
       address: FACTORY_ADDRESS,
@@ -118,174 +197,171 @@ export default function CreateEventPage() {
     });
   }
 
+  function fieldClass(field: keyof FieldErrors) {
+    const hasError = touched.has(field) && errors[field];
+    return `input-field ${hasError ? "!border-red-500/50" : ""}`;
+  }
+
+  function errorMsg(field: keyof FieldErrors) {
+    if (!touched.has(field) || !errors[field]) return null;
+    return <p className="text-red-400 text-xs mt-1.5">{errors[field]}</p>;
+  }
+
   return (
     <div className="mx-auto max-w-2xl px-6 py-16 animate-fade-in">
       <div className="mb-10">
         <Link
           href="/"
-          className="text-slate-500 hover:text-white text-sm inline-flex items-center gap-1 transition-colors duration-200 mb-6"
+          className="text-surface-500 hover:text-surface-200 text-sm inline-flex items-center gap-1 transition-colors duration-200 mb-6"
         >
           &larr; Back
         </Link>
-        <h1 className="text-4xl font-bold gradient-text mb-3">Create Event</h1>
-        <p className="text-slate-400">
+        <h1 className="font-display text-4xl md:text-5xl font-extrabold gradient-text mb-3">
+          Create Event
+        </h1>
+        <p className="text-surface-400">
           Deploy a new event contract on Base Sepolia.
           {creationFee !== undefined && (
-            <span className="inline-flex items-center gap-1 ml-2 px-2 py-0.5 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-300 text-xs font-medium">
+            <span
+              className="inline-flex items-center gap-1 ml-2 px-2 py-0.5 rounded-full text-xs font-medium"
+              style={{
+                background: "rgba(245, 158, 11, 0.08)",
+                border: "1px solid rgba(245, 158, 11, 0.15)",
+                color: "#fbbf24",
+              }}
+            >
               Fee: {formatUnits(creationFee, 6)} USDC
             </span>
           )}
         </p>
       </div>
 
-      {isSuccess && !needsApproval ? (
-        <div className="glass p-10 text-center animate-fade-in-up glow-sm">
-          <div className="w-14 h-14 mx-auto mb-5 rounded-2xl bg-green-500/10 border border-green-500/20 flex items-center justify-center">
-            <svg className="text-green-400" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M20 6L9 17l-5-5" />
-            </svg>
-          </div>
-          <h2 className="text-xl font-semibold text-white mb-2">
-            Event Created
-          </h2>
-          <p className="text-slate-400 mb-8 max-w-sm mx-auto">
-            Your event contract has been deployed. It will appear on the home
-            page shortly.
-          </p>
-          <div className="flex gap-3 justify-center">
-            <Link href="/" className="btn-primary">
-              View Events
-            </Link>
-            <button
-              onClick={() => {
-                reset();
-                setName("");
-                setVenue("");
-                setDate("");
-                setPrice("");
-                setMaxSupply("");
-                setTransferable(false);
-              }}
-              className="btn-secondary"
-            >
-              Create Another
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div className="glass p-8">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
-                Event Name
-              </label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Summer Music Festival 2026"
-                className="input-field"
-                required
-              />
-            </div>
+      <div className="glass relative overflow-hidden p-8">
+        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-accent-500/20 to-transparent" />
 
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
-                Venue
-              </label>
-              <input
-                type="text"
-                value={venue}
-                onChange={(e) => setVenue(e.target.value)}
-                placeholder="Madison Square Garden, NYC"
-                className="input-field"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
-                Date &amp; Time
-              </label>
-              <input
-                type="datetime-local"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                min={minDate}
-                className="input-field"
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
-                  Ticket Price (USDC)
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={price}
-                  onChange={(e) => setPrice(e.target.value)}
-                  placeholder="10"
-                  className="input-field"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
-                  Max Tickets
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  value={maxSupply}
-                  onChange={(e) => setMaxSupply(e.target.value)}
-                  placeholder="100"
-                  className="input-field"
-                  required
-                />
-              </div>
-            </div>
-
-            <label
-              htmlFor="transferable"
-              className="flex items-start gap-3 p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] cursor-pointer transition-colors duration-200 hover:border-white/[0.12]"
-            >
-              <input
-                type="checkbox"
-                id="transferable"
-                checked={transferable}
-                onChange={(e) => setTransferable(e.target.checked)}
-                className="mt-0.5 w-4 h-4 rounded border-slate-600 text-brand-600 focus:ring-brand-500 bg-transparent"
-              />
-              <div className="text-sm">
-                <span className="font-medium text-white">Allow transfers</span>
-                <span className="text-slate-500 block mt-0.5">
-                  If disabled, tickets are soulbound and cannot be transferred or resold.
-                </span>
-              </div>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <label className="block text-sm font-medium text-surface-300 mb-2">
+              Event Name
             </label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => { setName(e.target.value); clearError("name"); }}
+              onBlur={() => handleBlur("name", name)}
+              placeholder="Summer Music Festival 2026"
+              className={fieldClass("name")}
+            />
+            {errorMsg("name")}
+          </div>
 
-            <button
-              type="submit"
-              disabled={isPending || isConfirming}
-              className="btn-primary w-full"
-            >
-              {isPending
-                ? "Confirm in Wallet..."
-                : isConfirming
-                  ? needsApproval
-                    ? "Approving..."
-                    : "Deploying..."
-                  : needsApproval
-                    ? "Approve USDC"
-                    : "Create Event"}
-            </button>
-          </form>
-        </div>
-      )}
+          <div>
+            <label className="block text-sm font-medium text-surface-300 mb-2">
+              Venue
+            </label>
+            <input
+              type="text"
+              value={venue}
+              onChange={(e) => { setVenue(e.target.value); clearError("venue"); }}
+              onBlur={() => handleBlur("venue", venue)}
+              placeholder="Madison Square Garden, NYC"
+              className={fieldClass("venue")}
+            />
+            {errorMsg("venue")}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-surface-300 mb-2">
+              Date &amp; Time
+            </label>
+            <input
+              type="datetime-local"
+              value={date}
+              onChange={(e) => { setDate(e.target.value); clearError("date"); }}
+              onBlur={() => handleBlur("date", date)}
+              min={minDate}
+              className={fieldClass("date")}
+            />
+            {errorMsg("date")}
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-surface-300 mb-2">
+                Ticket Price (USDC)
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={price}
+                onChange={(e) => { setPrice(e.target.value); clearError("price"); }}
+                onBlur={() => handleBlur("price", price)}
+                placeholder="10"
+                className={fieldClass("price")}
+              />
+              {errorMsg("price")}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-surface-300 mb-2">
+                Max Tickets
+              </label>
+              <input
+                type="number"
+                min="1"
+                value={maxSupply}
+                onChange={(e) => { setMaxSupply(e.target.value); clearError("maxSupply"); }}
+                onBlur={() => handleBlur("maxSupply", maxSupply)}
+                placeholder="100"
+                className={fieldClass("maxSupply")}
+              />
+              {errorMsg("maxSupply")}
+            </div>
+          </div>
+
+          <label
+            htmlFor="transferable"
+            className="flex items-start gap-3 p-4 rounded-xl cursor-pointer transition-all duration-200 hover:bg-white/[0.02]"
+            style={{
+              background: "rgba(255, 255, 255, 0.02)",
+              border: "1px solid rgba(255, 255, 255, 0.05)",
+            }}
+          >
+            <input
+              type="checkbox"
+              id="transferable"
+              checked={transferable}
+              onChange={(e) => setTransferable(e.target.checked)}
+              className="mt-0.5 w-4 h-4 rounded border-surface-600 text-accent-500 focus:ring-accent-500 bg-transparent accent-amber-500"
+            />
+            <div className="text-sm">
+              <span className="font-medium text-surface-100">
+                Allow transfers
+              </span>
+              <span className="text-surface-500 block mt-0.5">
+                If disabled, tickets are soulbound and cannot be transferred
+                or resold.
+              </span>
+            </div>
+          </label>
+
+          <button
+            type="submit"
+            disabled={isPending || isConfirming}
+            className="btn-primary w-full"
+          >
+            {isPending
+              ? "Confirm in Wallet..."
+              : isConfirming
+                ? needsApproval
+                  ? "Approving..."
+                  : "Deploying..."
+                : needsApproval
+                  ? "Approve USDC"
+                  : "Create Event"}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

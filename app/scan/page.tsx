@@ -9,6 +9,7 @@ import {
 import { eventTicketAbi } from "@/lib/abi/EventTicket";
 import { toast } from "sonner";
 import { Html5Qrcode } from "html5-qrcode";
+import Link from "next/link";
 
 interface TicketData {
   event: `0x${string}`;
@@ -56,8 +57,9 @@ function TicketValidator({ data, onReset }: { data: TicketData; onReset: () => v
 
   if (isLoading) {
     return (
-      <div className="rounded-xl border border-slate-800 bg-slate-900 p-8 text-center animate-pulse">
-        <p className="text-slate-400">Verifying ticket onchain...</p>
+      <div className="glass p-8 text-center">
+        <div className="skeleton h-4 w-48 mx-auto" />
+        <p className="text-surface-400 mt-4">Verifying ticket onchain...</p>
       </div>
     );
   }
@@ -70,36 +72,62 @@ function TicketValidator({ data, onReset }: { data: TicketData; onReset: () => v
     actualOwner?.toLowerCase() === data.owner.toLowerCase();
   const isValid = ownerMatches && !isRedeemed;
 
+  const borderColor = isSuccess
+    ? "rgba(34, 197, 94, 0.2)"
+    : isValid
+      ? "rgba(245, 158, 11, 0.2)"
+      : "rgba(239, 68, 68, 0.2)";
+  const glowColor = isSuccess
+    ? "rgba(34, 197, 94, 0.06)"
+    : isValid
+      ? "rgba(245, 158, 11, 0.06)"
+      : "rgba(239, 68, 68, 0.06)";
+
   return (
-    <div className="animate-scale-in space-y-4">
+    <div className="animate-fade-in-up space-y-4">
       <div
-        className={`rounded-xl border p-6 ${
-          isSuccess
-            ? "border-green-500/30 bg-green-500/5"
-            : isValid
-              ? "border-brand-500/30 bg-brand-500/5"
-              : "border-red-500/30 bg-red-500/5"
-        }`}
+        className="glass relative overflow-hidden p-6"
+        style={{ borderColor, background: glowColor }}
       >
+        <div
+          className="absolute top-0 inset-x-0 h-px"
+          style={{
+            background: `linear-gradient(to right, transparent, ${borderColor}, transparent)`,
+          }}
+        />
+
         <div className="text-center mb-6">
           {isSuccess ? (
             <>
-              <div className="text-4xl mb-2">&#10003;</div>
-              <h2 className="text-xl font-semibold text-green-400">
+              <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-green-500/10 border border-green-500/15 flex items-center justify-center">
+                <svg className="text-green-400" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 6L9 17l-5-5" />
+                </svg>
+              </div>
+              <h2 className="font-display text-xl font-bold text-green-400">
                 Ticket Redeemed
               </h2>
             </>
           ) : isValid ? (
             <>
-              <div className="text-4xl mb-2">&#9989;</div>
-              <h2 className="text-xl font-semibold text-brand-400">
+              <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-accent-500/10 border border-accent-500/15 flex items-center justify-center">
+                <svg className="text-accent-400" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 6L9 17l-5-5" />
+                </svg>
+              </div>
+              <h2 className="font-display text-xl font-bold text-accent-400">
                 Valid Ticket
               </h2>
             </>
           ) : (
             <>
-              <div className="text-4xl mb-2">&#10060;</div>
-              <h2 className="text-xl font-semibold text-red-400">
+              <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-red-500/10 border border-red-500/15 flex items-center justify-center">
+                <svg className="text-red-400" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </div>
+              <h2 className="font-display text-xl font-bold text-red-400">
                 {isRedeemed ? "Already Redeemed" : "Invalid Ticket"}
               </h2>
             </>
@@ -108,27 +136,27 @@ function TicketValidator({ data, onReset }: { data: TicketData; onReset: () => v
 
         <div className="space-y-3 text-sm">
           <div className="flex justify-between">
-            <span className="text-slate-500">Event</span>
-            <span className="text-slate-300">{eventName ?? "Unknown"}</span>
+            <span className="text-surface-500">Event</span>
+            <span className="text-surface-200 font-medium">{eventName ?? "Unknown"}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-slate-500">Ticket ID</span>
-            <span className="text-white font-mono">#{data.ticketId}</span>
+            <span className="text-surface-500">Ticket ID</span>
+            <span className="text-surface-50 font-mono font-medium">#{data.ticketId}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-slate-500">Owner</span>
-            <span className="text-slate-300 font-mono text-xs">
+            <span className="text-surface-500">Owner</span>
+            <span className="text-surface-300 font-mono text-xs">
               {data.owner.slice(0, 6)}...{data.owner.slice(-4)}
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-slate-500">Ownership</span>
+            <span className="text-surface-500">Ownership</span>
             <span className={ownerMatches ? "text-green-400" : "text-red-400"}>
               {ownerMatches ? "Verified" : "Mismatch"}
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-slate-500">Status</span>
+            <span className="text-surface-500">Status</span>
             <span className={isRedeemed ? "text-red-400" : "text-green-400"}>
               {isRedeemed ? "Already used" : "Unused"}
             </span>
@@ -148,7 +176,7 @@ function TicketValidator({ data, onReset }: { data: TicketData; onReset: () => v
               })
             }
             disabled={isPending || isConfirming}
-            className="btn flex-1 rounded-lg bg-brand-600 px-4 py-3 font-semibold text-white hover:bg-brand-500 disabled:opacity-50"
+            className="btn-primary flex-1"
           >
             {isPending
               ? "Confirm..."
@@ -159,7 +187,7 @@ function TicketValidator({ data, onReset }: { data: TicketData; onReset: () => v
         )}
         <button
           onClick={onReset}
-          className="btn flex-1 rounded-lg bg-slate-800 px-4 py-3 font-semibold text-white hover:bg-slate-700"
+          className="btn-secondary flex-1"
         >
           Scan Another
         </button>
@@ -228,9 +256,17 @@ export default function ScanPage() {
   }
 
   return (
-    <div className="mx-auto max-w-lg px-6 py-12">
-      <h1 className="text-3xl font-bold text-white mb-2">Scan Tickets</h1>
-      <p className="text-slate-400 mb-8">
+    <div className="mx-auto max-w-lg px-6 py-16 animate-fade-in">
+      <Link
+        href="/"
+        className="text-surface-500 hover:text-surface-200 text-sm inline-flex items-center gap-1 transition-colors duration-200 mb-6"
+      >
+        &larr; Back
+      </Link>
+      <h1 className="font-display text-4xl font-extrabold gradient-text mb-3">
+        Scan Tickets
+      </h1>
+      <p className="text-surface-400 mb-10">
         Scan a ticket QR code to verify ownership and check in attendees.
       </p>
 
@@ -241,19 +277,20 @@ export default function ScanPage() {
         />
       ) : (
         <div className="space-y-6">
-          <div className="rounded-xl border border-slate-800 bg-slate-900 p-6">
-            <h2 className="text-lg font-semibold text-white mb-4">
+          <div className="glass relative overflow-hidden p-6">
+            <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-accent-500/25 to-transparent" />
+            <h2 className="font-display text-lg font-bold text-surface-50 mb-4">
               Camera Scanner
             </h2>
             {scannerActive ? (
               <div className="space-y-4">
                 <div
                   id={scannerElementId}
-                  className="rounded-lg overflow-hidden"
+                  className="rounded-xl overflow-hidden"
                 />
                 <button
                   onClick={stopScanner}
-                  className="btn w-full rounded-lg bg-slate-800 px-4 py-3 text-slate-300 hover:bg-slate-700"
+                  className="btn-secondary w-full"
                 >
                   Stop Scanner
                 </button>
@@ -261,15 +298,16 @@ export default function ScanPage() {
             ) : (
               <button
                 onClick={startScanner}
-                className="btn w-full rounded-lg bg-brand-600 px-4 py-3 font-semibold text-white hover:bg-brand-500"
+                className="btn-primary w-full"
               >
                 Start Camera
               </button>
             )}
           </div>
 
-          <div className="rounded-xl border border-slate-800 bg-slate-900 p-6">
-            <h2 className="text-lg font-semibold text-white mb-4">
+          <div className="glass relative overflow-hidden p-6">
+            <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
+            <h2 className="font-display text-lg font-bold text-surface-50 mb-4">
               Manual Input
             </h2>
             <form onSubmit={handleManualSubmit} className="space-y-3">
@@ -278,11 +316,11 @@ export default function ScanPage() {
                 onChange={(e) => setManualInput(e.target.value)}
                 placeholder='Paste QR payload: {"event":"0x...","ticketId":0,"owner":"0x..."}'
                 rows={3}
-                className="w-full rounded-lg bg-slate-800 border border-slate-700 px-4 py-3 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-brand-500"
+                className="input-field !text-sm resize-none"
               />
               <button
                 type="submit"
-                className="btn w-full rounded-lg bg-slate-700 px-4 py-2.5 text-white text-sm hover:bg-slate-600"
+                className="btn-secondary w-full"
               >
                 Verify
               </button>
