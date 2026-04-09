@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useWriteContract, useWaitForTransactionReceipt, useAccount } from "wagmi";
+import { useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { useQueryClient } from "@tanstack/react-query";
 import { eventTicketAbi } from "@/lib/abi/EventTicket";
 import { toast } from "sonner";
-import { QRCodeSVG } from "qrcode.react";
 
 export function UserTickets({
   address,
@@ -15,7 +15,7 @@ export function UserTickets({
   tickets: { ticketId: number; redeemed: boolean }[];
   cancelled: boolean;
 }) {
-  const { address: userAddress } = useAccount();
+  const queryClient = useQueryClient();
   const {
     writeContract,
     data: hash,
@@ -26,7 +26,6 @@ export function UserTickets({
   const { isLoading: isConfirming, isSuccess } =
     useWaitForTransactionReceipt({ hash });
   const [actionTicketId, setActionTicketId] = useState<number | null>(null);
-  const [showQrFor, setShowQrFor] = useState<number | null>(null);
   const busy = isPending || isConfirming;
 
   useEffect(() => {
@@ -43,10 +42,11 @@ export function UserTickets({
   useEffect(() => {
     if (isSuccess) {
       toast.success(cancelled ? "Refund claimed!" : "Ticket checked in!");
+      queryClient.invalidateQueries();
       reset();
       setActionTicketId(null);
     }
-  }, [isSuccess, cancelled, reset]);
+  }, [isSuccess, cancelled, queryClient, reset]);
 
   if (tickets.length === 0) return null;
 
@@ -57,97 +57,63 @@ export function UserTickets({
         Your Tickets ({tickets.length})
       </h2>
       <div className="space-y-3">
-        {tickets.map((t) => {
-          const qrPayload = JSON.stringify({
-            event: address,
-            ticketId: t.ticketId,
-            owner: userAddress,
-          });
-
-          return (
-            <div
-              key={t.ticketId}
-              className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06]"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-white font-mono text-sm">
-                    Ticket #{t.ticketId}
-                  </span>
-                  {t.redeemed && (
-                    <span className="text-xs bg-slate-700 text-slate-400 px-2 py-0.5 rounded-full">
-                      Redeemed
-                    </span>
-                  )}
-                </div>
-                <div className="flex gap-2">
-                  {!t.redeemed && (
-                    <button
-                      onClick={() =>
-                        setShowQrFor(showQrFor === t.ticketId ? null : t.ticketId)
-                      }
-                      className="btn px-3 py-1.5 rounded-lg bg-slate-700 text-slate-300 text-sm hover:bg-slate-600"
-                    >
-                      {showQrFor === t.ticketId ? "Hide QR" : "Show QR"}
-                    </button>
-                  )}
-                  {!t.redeemed && !cancelled && (
-                    <button
-                      onClick={() => {
-                        setActionTicketId(t.ticketId);
-                        writeContract({
-                          address,
-                          abi: eventTicketAbi,
-                          functionName: "redeemTicket",
-                          args: [BigInt(t.ticketId)],
-                        });
-                      }}
-                      disabled={busy && actionTicketId === t.ticketId}
-                      className="btn-press px-3 py-1.5 rounded-lg bg-accent-500 text-surface-950 text-sm font-medium hover:bg-accent-400 disabled:opacity-50 transition-colors duration-200"
-                    >
-                      {busy && actionTicketId === t.ticketId ? "..." : "Check In"}
-                    </button>
-                  )}
-                  {!t.redeemed && cancelled && (
-                    <button
-                      onClick={() => {
-                        setActionTicketId(t.ticketId);
-                        writeContract({
-                          address,
-                          abi: eventTicketAbi,
-                          functionName: "claimRefund",
-                          args: [BigInt(t.ticketId)],
-                        });
-                      }}
-                      disabled={busy && actionTicketId === t.ticketId}
-                      className="btn px-3 py-1.5 rounded-lg bg-amber-600 text-white text-sm hover:bg-amber-500 disabled:opacity-50"
-                    >
-                      {busy && actionTicketId === t.ticketId
-                        ? "..."
-                        : "Claim Refund"}
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {showQrFor === t.ticketId && !t.redeemed && (
-                <div className="mt-4 flex flex-col items-center gap-3 animate-scale-in">
-                  <div className="bg-white p-4 rounded-xl">
-                    <QRCodeSVG
-                      value={qrPayload}
-                      size={200}
-                      level="H"
-                    />
-                  </div>
-                  <p className="text-slate-500 text-xs text-center max-w-xs">
-                    Show this QR code at the venue entrance. Staff will scan it
-                    to verify your ticket.
-                  </p>
-                </div>
+        {tickets.map((t) => (
+          <div
+            key={t.ticketId}
+            className="flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-white/[0.06]"
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-surface-50 font-mono text-sm">
+                #{t.ticketId}
+              </span>
+              {t.redeemed ? (
+                <span className="text-[10px] font-medium bg-surface-700 text-surface-400 px-2 py-0.5 rounded-full">
+                  Redeemed
+                </span>
+              ) : (
+                <span className="text-[10px] font-medium bg-green-500/10 text-green-400 px-2 py-0.5 rounded-full border border-green-500/15">
+                  Valid
+                </span>
               )}
             </div>
-          );
-        })}
+            <div className="flex gap-2">
+              {!t.redeemed && !cancelled && (
+                <button
+                  onClick={() => {
+                    setActionTicketId(t.ticketId);
+                    writeContract({
+                      address,
+                      abi: eventTicketAbi,
+                      functionName: "redeemTicket",
+                      args: [BigInt(t.ticketId)],
+                    });
+                  }}
+                  disabled={busy && actionTicketId === t.ticketId}
+                  className="btn-press px-3 py-1.5 rounded-lg bg-accent-500/10 border border-accent-500/15 text-accent-400 text-sm font-medium hover:bg-accent-500/20 disabled:opacity-50 transition-all duration-200"
+                >
+                  {busy && actionTicketId === t.ticketId ? "..." : "Check In"}
+                </button>
+              )}
+              {!t.redeemed && cancelled && (
+                <button
+                  onClick={() => {
+                    setActionTicketId(t.ticketId);
+                    writeContract({
+                      address,
+                      abi: eventTicketAbi,
+                      functionName: "claimRefund",
+                      args: [BigInt(t.ticketId)],
+                    });
+                  }}
+                  disabled={busy && actionTicketId === t.ticketId}
+                  className="btn-press px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/15 text-amber-400 text-sm font-medium hover:bg-amber-500/20 disabled:opacity-50 transition-all duration-200"
+                >
+                  {busy && actionTicketId === t.ticketId ? "..." : "Claim Refund"}
+                </button>
+              )}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

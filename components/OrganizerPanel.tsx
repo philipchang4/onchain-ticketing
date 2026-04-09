@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { useQueryClient } from "@tanstack/react-query";
 import { parseEther, formatEther } from "viem";
 import { eventTicketAbi } from "@/lib/abi/EventTicket";
 import { toast } from "sonner";
+import Link from "next/link";
 
 export function OrganizerPanel({
   address,
@@ -18,6 +20,7 @@ export function OrganizerPanel({
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [newPrice, setNewPrice] = useState("");
   const [showPriceInput, setShowPriceInput] = useState(false);
+  const queryClient = useQueryClient();
 
   const {
     writeContract,
@@ -45,6 +48,7 @@ export function OrganizerPanel({
   useEffect(() => {
     if (isSuccess) {
       toast.success("Transaction confirmed!");
+      queryClient.invalidateQueries();
       reset();
       setConfirmCancel(false);
       setShowPriceInput(false);
@@ -127,6 +131,13 @@ export function OrganizerPanel({
         >
           Withdraw Proceeds
         </button>
+
+        <Link
+          href="/scan"
+          className="btn-press px-4 py-2 rounded-xl bg-white/[0.05] border border-white/[0.08] text-surface-300 hover:bg-white/[0.08] hover:border-accent-500/20 transition-all duration-200 text-sm"
+        >
+          Scan Tickets
+        </Link>
       </div>
 
       {showPriceInput && (

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useReadContract } from "wagmi";
 import { ticketFactoryAbi } from "@/lib/abi/TicketFactory";
 import { FACTORY_ADDRESS } from "@/lib/contracts";
@@ -7,11 +8,19 @@ import { EventCard } from "@/components/EventCard";
 import Link from "next/link";
 
 export default function HomePage() {
+  const [search, setSearch] = useState("");
   const { data: events, isLoading } = useReadContract({
     address: FACTORY_ADDRESS,
     abi: ticketFactoryAbi,
     functionName: "getEvents",
   });
+
+  const reversed = events ? [...events].reverse() : [];
+  const filtered = search
+    ? reversed.filter((addr) =>
+        addr.toLowerCase().includes(search.toLowerCase())
+      )
+    : reversed;
 
   return (
     <div className="mx-auto max-w-7xl px-6">
@@ -64,33 +73,78 @@ export default function HomePage() {
             </a>
           </div>
         </div>
-
       </section>
 
       {/* Events */}
       <section id="events" className="pb-24">
         {events && events.length > 0 && (
-          <div className="flex items-baseline justify-between mb-10">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-10">
             <h2 className="font-display text-2xl font-bold text-surface-50">
               Events
+              <span className="text-surface-500 text-sm font-normal ml-2">
+                {filtered.length}
+                {search && ` of ${events.length}`}
+              </span>
             </h2>
-            <span className="text-surface-500 text-sm">
-              {events.length} total
-            </span>
+            <div className="relative w-full sm:w-64">
+              <svg
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-surface-500"
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search by address..."
+                className="input-field !py-2 !pl-9 !text-sm"
+              />
+            </div>
           </div>
         )}
 
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="skeleton h-72" />
+              <div key={i} className="glass p-6 space-y-4">
+                <div className="flex justify-between">
+                  <div className="space-y-2 flex-1">
+                    <div className="skeleton h-5 w-2/3" />
+                    <div className="skeleton h-3 w-1/2" />
+                  </div>
+                  <div className="skeleton h-6 w-16 rounded-full" />
+                </div>
+                <div className="space-y-2.5 pt-2">
+                  <div className="skeleton h-3.5 w-full" />
+                  <div className="skeleton h-3.5 w-full" />
+                  <div className="skeleton h-3.5 w-full" />
+                </div>
+                <div className="pt-3 border-t border-white/[0.04]">
+                  <div className="skeleton h-1.5 w-full rounded-full" />
+                </div>
+              </div>
             ))}
           </div>
-        ) : events && events.length > 0 ? (
+        ) : filtered.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[...events].reverse().map((address, i) => (
+            {filtered.map((address, i) => (
               <EventCard key={address} address={address} index={i} />
             ))}
+          </div>
+        ) : events && events.length > 0 && search ? (
+          <div className="glass text-center py-16 px-6">
+            <p className="text-surface-400">
+              No events matching &ldquo;{search}&rdquo;
+            </p>
           </div>
         ) : (
           <div className="glass text-center py-24 px-6 animate-fade-in">

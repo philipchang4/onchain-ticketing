@@ -176,3 +176,23 @@ body::before {
   background-size: 200% 100%;
   animation: shimmer 2s ease-in-out infinite;
 }
+
+/* Accessibility: respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in-up,
+  .animate-fade-in {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+  .glass-hover:hover {
+    transform: none !important;
+  }
+  .btn-press:active,
+  .btn-primary:active,
+  .btn-secondary:active {
+    transform: none !important;
+  }
+  .skeleton {
+    animation: none;
+  }
+}
