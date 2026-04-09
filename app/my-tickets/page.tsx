@@ -81,7 +81,14 @@ function TicketList({ userAddress }: { userAddress: `0x${string}` }) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {Array.from({ length: 2 }).map((_, i) => (
-          <div key={i} className="skeleton h-36" />
+          <div key={i} className="glass p-5 flex gap-4">
+            <div className="skeleton w-24 h-24 rounded-xl shrink-0" />
+            <div className="flex-1 space-y-2.5 pt-1">
+              <div className="skeleton h-4 w-3/4" />
+              <div className="skeleton h-3 w-1/2" />
+              <div className="skeleton h-3 w-16 rounded-full" />
+            </div>
+          </div>
         ))}
       </div>
     );
