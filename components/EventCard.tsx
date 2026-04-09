@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useReadContracts } from "wagmi";
-import { formatEther } from "viem";
+import { formatUnits } from "viem";
 import { eventTicketAbi } from "@/lib/abi/EventTicket";
 
 function relativeDate(date: Date): string {
@@ -102,7 +102,7 @@ export function EventCard({
             <span className="text-surface-500">Price</span>
             <span className="text-surface-200 font-medium">
               {price !== undefined
-                ? `${formatEther(price as bigint)} ETH`
+                ? `${formatUnits(price as bigint, 6)} USDC`
                 : "..."}
             </span>
           </div>

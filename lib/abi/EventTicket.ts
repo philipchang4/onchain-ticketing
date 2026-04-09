@@ -79,6 +79,13 @@ export const eventTicketAbi = [
   },
   {
     type: "function",
+    name: "paymentToken",
+    inputs: [],
+    outputs: [{ name: "", type: "address" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
     name: "redeemed",
     inputs: [{ name: "ticketId", type: "uint256" }],
     outputs: [{ name: "", type: "bool" }],
@@ -104,14 +111,14 @@ export const eventTicketAbi = [
     name: "buyTicket",
     inputs: [],
     outputs: [{ name: "ticketId", type: "uint256" }],
-    stateMutability: "payable",
+    stateMutability: "nonpayable",
   },
   {
     type: "function",
     name: "buyTickets",
     inputs: [{ name: "quantity", type: "uint256" }],
     outputs: [{ name: "ticketIds", type: "uint256[]" }],
-    stateMutability: "payable",
+    stateMutability: "nonpayable",
   },
   {
     type: "function",

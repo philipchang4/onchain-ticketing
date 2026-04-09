@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { useQueryClient } from "@tanstack/react-query";
-import { parseEther, formatEther } from "viem";
+import { parseUnits, formatUnits } from "viem";
 import { eventTicketAbi } from "@/lib/abi/EventTicket";
 import { toast } from "sonner";
 import Link from "next/link";
@@ -54,7 +54,7 @@ export function OrganizerPanel({
       setShowPriceInput(false);
       setNewPrice("");
     }
-  }, [isSuccess, reset]);
+  }, [isSuccess, queryClient, reset]);
 
   return (
     <div className="glass relative overflow-hidden p-6 border-amber-500/20">
@@ -144,15 +144,15 @@ export function OrganizerPanel({
         <div className="flex items-end gap-3 pt-4 border-t border-white/[0.04] animate-fade-in">
           <div className="flex-1">
             <label className="block text-xs text-surface-400 mb-1.5">
-              New price (current: {formatEther(currentPrice)} ETH)
+              New price (current: {formatUnits(currentPrice, 6)} USDC)
             </label>
             <input
               type="number"
-              step="0.000001"
+              step="0.01"
               min="0"
               value={newPrice}
               onChange={(e) => setNewPrice(e.target.value)}
-              placeholder="0.001"
+              placeholder="10"
               className="input-field !py-2 !text-sm"
             />
           </div>
@@ -163,7 +163,7 @@ export function OrganizerPanel({
                 address,
                 abi: eventTicketAbi,
                 functionName: "setPrice",
-                args: [parseEther(newPrice)],
+                args: [parseUnits(newPrice, 6)],
               });
             }}
             disabled={busy || !newPrice}

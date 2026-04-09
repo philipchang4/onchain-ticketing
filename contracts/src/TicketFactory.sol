@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {EventTicket} from "./EventTicket.sol";
 
 /// @title TicketFactory
@@ -12,6 +13,7 @@ contract TicketFactory is Ownable {
     using Clones for address;
 
     address public implementation;
+    IERC20 public paymentToken;
     uint256 public creationFee;
     address[] public events;
 
@@ -27,13 +29,13 @@ contract TicketFactory is Ownable {
     event FeesWithdrawn(address indexed owner, uint256 amount);
     event ImplementationUpdated(address indexed newImplementation);
 
-    error InsufficientCreationFee();
     error NoFeesToWithdraw();
-    error TransferFailed();
+    error PaymentFailed();
 
-    constructor(address _implementation, uint256 _creationFee) Ownable(msg.sender) {
+    constructor(address _implementation, uint256 _creationFee, IERC20 _paymentToken) Ownable(msg.sender) {
         implementation = _implementation;
         creationFee = _creationFee;
+        paymentToken = _paymentToken;
     }
 
     function createEvent(
@@ -43,8 +45,10 @@ contract TicketFactory is Ownable {
         uint256 _price,
         uint256 _maxSupply,
         bool _transferable
-    ) external payable returns (address eventAddress) {
-        if (msg.value < creationFee) revert InsufficientCreationFee();
+    ) external returns (address eventAddress) {
+        if (creationFee > 0) {
+            if (!paymentToken.transferFrom(msg.sender, address(this), creationFee)) revert PaymentFailed();
+        }
 
         eventAddress = implementation.clone();
 
@@ -55,7 +59,8 @@ contract TicketFactory is Ownable {
             _price,
             _maxSupply,
             _transferable,
-            msg.sender
+            msg.sender,
+            paymentToken
         );
 
         events.push(eventAddress);
@@ -77,11 +82,10 @@ contract TicketFactory is Ownable {
     }
 
     function withdrawFees() external onlyOwner {
-        uint256 balance = address(this).balance;
+        uint256 balance = paymentToken.balanceOf(address(this));
         if (balance == 0) revert NoFeesToWithdraw();
 
-        (bool success,) = payable(owner()).call{value: balance}("");
-        if (!success) revert TransferFailed();
+        if (!paymentToken.transfer(owner(), balance)) revert PaymentFailed();
 
         emit FeesWithdrawn(owner(), balance);
     }

@@ -5,13 +5,14 @@ import {
   useWriteContract,
   useWaitForTransactionReceipt,
   useReadContract,
-  usePublicClient,
+  useAccount,
 } from "wagmi";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { parseEther, formatEther, decodeEventLog } from "viem";
+import { parseUnits, formatUnits, decodeEventLog, maxUint256 } from "viem";
 import { ticketFactoryAbi } from "@/lib/abi/TicketFactory";
-import { FACTORY_ADDRESS } from "@/lib/contracts";
+import { erc20Abi } from "@/lib/abi/ERC20";
+import { FACTORY_ADDRESS, USDC_ADDRESS } from "@/lib/contracts";
 import Link from "next/link";
 import { toast } from "sonner";
 
@@ -27,14 +28,22 @@ export default function CreateEventPage() {
   const [errors, setErrors] = useState<FieldErrors>({});
   const [touched, setTouched] = useState<Set<string>>(new Set());
 
+  const { address: userAddress } = useAccount();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const publicClient = usePublicClient();
 
   const { data: creationFee } = useReadContract({
     address: FACTORY_ADDRESS,
     abi: ticketFactoryAbi,
     functionName: "creationFee",
+  });
+
+  const { data: allowance, refetch: refetchAllowance } = useReadContract({
+    address: USDC_ADDRESS,
+    abi: erc20Abi,
+    functionName: "allowance",
+    args: userAddress ? [userAddress, FACTORY_ADDRESS] : undefined,
+    query: { enabled: !!userAddress },
   });
 
   const {
@@ -47,6 +56,12 @@ export default function CreateEventPage() {
   const { isLoading: isConfirming, isSuccess, data: receipt } =
     useWaitForTransactionReceipt({ hash });
 
+  const needsApproval =
+    creationFee !== undefined &&
+    creationFee > 0n &&
+    allowance !== undefined &&
+    (allowance as bigint) < (creationFee as bigint);
+
   useEffect(() => {
     if (error) {
       const msg = error.message.includes("User rejected")
@@ -58,39 +73,49 @@ export default function CreateEventPage() {
   }, [error, reset]);
 
   useEffect(() => {
-    if (isSuccess && receipt) {
+    if (isSuccess) {
+      if (needsApproval) {
+        toast.success("USDC approved! You can now create your event.");
+        refetchAllowance();
+        reset();
+        return;
+      }
+
       queryClient.invalidateQueries();
-      try {
-        const eventLog = receipt.logs.find((log) => {
-          try {
+
+      if (receipt) {
+        try {
+          const eventLog = receipt.logs.find((log) => {
+            try {
+              const decoded = decodeEventLog({
+                abi: ticketFactoryAbi,
+                data: log.data,
+                topics: log.topics,
+              });
+              return decoded.eventName === "EventCreated";
+            } catch {
+              return false;
+            }
+          });
+
+          if (eventLog) {
             const decoded = decodeEventLog({
               abi: ticketFactoryAbi,
-              data: log.data,
-              topics: log.topics,
+              data: eventLog.data,
+              topics: eventLog.topics,
             });
-            return decoded.eventName === "EventCreated";
-          } catch {
-            return false;
+            const newAddress = (decoded.args as { eventAddress: string }).eventAddress;
+            toast.success("Event created! Redirecting...");
+            router.push(`/event/${newAddress}`);
+            return;
           }
-        });
-
-        if (eventLog) {
-          const decoded = decodeEventLog({
-            abi: ticketFactoryAbi,
-            data: eventLog.data,
-            topics: eventLog.topics,
-          });
-          const newAddress = (decoded.args as { eventAddress: string }).eventAddress;
-          toast.success("Event created! Redirecting...");
-          router.push(`/event/${newAddress}`);
-          return;
+        } catch {
+          // Fall through
         }
-      } catch {
-        // Fall through to generic success
       }
       toast.success("Event created!");
     }
-  }, [isSuccess, receipt, queryClient, router]);
+  }, [isSuccess, needsApproval, receipt, queryClient, router, refetchAllowance, reset]);
 
   function validate(field: string, value: string): string | undefined {
     switch (field) {
@@ -124,10 +149,24 @@ export default function CreateEventPage() {
     }
   }
 
+  function handleApprove() {
+    writeContract({
+      address: USDC_ADDRESS,
+      abi: erc20Abi,
+      functionName: "approve",
+      args: [FACTORY_ADDRESS, maxUint256],
+    });
+  }
+
   const minDate = new Date().toISOString().slice(0, 16);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+
+    if (needsApproval) {
+      handleApprove();
+      return;
+    }
 
     const newErrors: FieldErrors = {
       name: validate("name", name),
@@ -151,11 +190,10 @@ export default function CreateEventPage() {
         name,
         venue,
         dateTimestamp,
-        parseEther(price),
+        parseUnits(price, 6),
         BigInt(maxSupply),
         transferable,
       ],
-      value: creationFee ?? 0n,
     });
   }
 
@@ -166,9 +204,7 @@ export default function CreateEventPage() {
 
   function errorMsg(field: keyof FieldErrors) {
     if (!touched.has(field) || !errors[field]) return null;
-    return (
-      <p className="text-red-400 text-xs mt-1.5">{errors[field]}</p>
-    );
+    return <p className="text-red-400 text-xs mt-1.5">{errors[field]}</p>;
   }
 
   return (
@@ -194,7 +230,7 @@ export default function CreateEventPage() {
                 color: "#fbbf24",
               }}
             >
-              Fee: {formatEther(creationFee)} ETH
+              Fee: {formatUnits(creationFee, 6)} USDC
             </span>
           )}
         </p>
@@ -252,16 +288,16 @@ export default function CreateEventPage() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-surface-300 mb-2">
-                Ticket Price (ETH)
+                Ticket Price (USDC)
               </label>
               <input
                 type="number"
-                step="0.000001"
+                step="0.01"
                 min="0"
                 value={price}
                 onChange={(e) => { setPrice(e.target.value); clearError("price"); }}
                 onBlur={() => handleBlur("price", price)}
-                placeholder="0.0001"
+                placeholder="10"
                 className={fieldClass("price")}
               />
               {errorMsg("price")}
@@ -317,8 +353,12 @@ export default function CreateEventPage() {
             {isPending
               ? "Confirm in Wallet..."
               : isConfirming
-                ? "Deploying..."
-                : "Create Event"}
+                ? needsApproval
+                  ? "Approving..."
+                  : "Deploying..."
+                : needsApproval
+                  ? "Approve USDC"
+                  : "Create Event"}
           </button>
         </form>
       </div>

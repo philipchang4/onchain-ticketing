@@ -2,7 +2,6 @@
 
 import { useParams } from "next/navigation";
 import { useReadContracts, useAccount } from "wagmi";
-import { formatEther } from "viem";
 import { eventTicketAbi } from "@/lib/abi/EventTicket";
 import Link from "next/link";
 import { BuySection } from "@/components/BuySection";
