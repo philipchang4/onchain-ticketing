@@ -1,14 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   useWriteContract,
-  useWaitForTransactionReceipt,
   useReadContract,
   useAccount,
+  useConfig,
 } from "wagmi";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
+import { waitForTransactionReceipt } from "wagmi/actions";
 import { parseUnits, formatUnits, decodeEventLog, maxUint256 } from "viem";
 import { ticketFactoryAbi } from "@/lib/abi/TicketFactory";
 import { erc20Abi } from "@/lib/abi/ERC20";
@@ -27,10 +28,14 @@ export default function CreateEventPage() {
   const [transferable, setTransferable] = useState(false);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [touched, setTouched] = useState<Set<string>>(new Set());
+  const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState("");
 
+  const config = useConfig();
   const { address: userAddress } = useAccount();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { writeContractAsync } = useWriteContract();
 
   const { data: creationFee } = useReadContract({
     address: FACTORY_ADDRESS,
@@ -38,7 +43,7 @@ export default function CreateEventPage() {
     functionName: "creationFee",
   });
 
-  const { data: allowance, refetch: refetchAllowance } = useReadContract({
+  const { data: allowance } = useReadContract({
     address: USDC_ADDRESS,
     abi: erc20Abi,
     functionName: "allowance",
@@ -46,76 +51,11 @@ export default function CreateEventPage() {
     query: { enabled: !!userAddress },
   });
 
-  const {
-    writeContract,
-    data: hash,
-    isPending,
-    error,
-    reset,
-  } = useWriteContract();
-  const { isLoading: isConfirming, isSuccess, data: receipt } =
-    useWaitForTransactionReceipt({ hash });
-
   const needsApproval =
     creationFee !== undefined &&
     creationFee > 0n &&
     allowance !== undefined &&
     (allowance as bigint) < (creationFee as bigint);
-
-  useEffect(() => {
-    if (error) {
-      const msg = error.message.includes("User rejected")
-        ? "Transaction was rejected."
-        : "Transaction failed. Please try again.";
-      toast.error(msg);
-      reset();
-    }
-  }, [error, reset]);
-
-  useEffect(() => {
-    if (isSuccess) {
-      if (needsApproval) {
-        toast.success("USDC approved! You can now create your event.");
-        refetchAllowance();
-        reset();
-        return;
-      }
-
-      queryClient.invalidateQueries();
-
-      if (receipt) {
-        try {
-          const eventLog = receipt.logs.find((log) => {
-            try {
-              const decoded = decodeEventLog({
-                abi: ticketFactoryAbi,
-                data: log.data,
-                topics: log.topics,
-              });
-              return decoded.eventName === "EventCreated";
-            } catch {
-              return false;
-            }
-          });
-
-          if (eventLog) {
-            const decoded = decodeEventLog({
-              abi: ticketFactoryAbi,
-              data: eventLog.data,
-              topics: eventLog.topics,
-            });
-            const newAddress = (decoded.args as { eventAddress: string }).eventAddress;
-            toast.success("Event created! Redirecting...");
-            router.push(`/event/${newAddress}`);
-            return;
-          }
-        } catch {
-          // Fall through
-        }
-      }
-      toast.success("Event created!");
-    }
-  }, [isSuccess, needsApproval, receipt, queryClient, router, refetchAllowance, reset]);
 
   function validate(field: string, value: string): string | undefined {
     switch (field) {
@@ -149,24 +89,10 @@ export default function CreateEventPage() {
     }
   }
 
-  function handleApprove() {
-    writeContract({
-      address: USDC_ADDRESS,
-      abi: erc20Abi,
-      functionName: "approve",
-      args: [FACTORY_ADDRESS, maxUint256],
-    });
-  }
-
   const minDate = new Date().toISOString().slice(0, 16);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-
-    if (needsApproval) {
-      handleApprove();
-      return;
-    }
 
     const newErrors: FieldErrors = {
       name: validate("name", name),
@@ -180,21 +106,80 @@ export default function CreateEventPage() {
 
     if (Object.values(newErrors).some(Boolean)) return;
 
-    const dateTimestamp = BigInt(Math.floor(new Date(date).getTime() / 1000));
+    setBusy(true);
+    try {
+      if (needsApproval) {
+        setStatus("Approve in Wallet...");
+        const approveHash = await writeContractAsync({
+          address: USDC_ADDRESS,
+          abi: erc20Abi,
+          functionName: "approve",
+          args: [FACTORY_ADDRESS, maxUint256],
+        });
+        setStatus("Approving USDC...");
+        await waitForTransactionReceipt(config, { hash: approveHash });
+      }
 
-    writeContract({
-      address: FACTORY_ADDRESS,
-      abi: ticketFactoryAbi,
-      functionName: "createEvent",
-      args: [
-        name,
-        venue,
-        dateTimestamp,
-        parseUnits(price, 6),
-        BigInt(maxSupply),
-        transferable,
-      ],
-    });
+      setStatus("Confirm in Wallet...");
+      const dateTimestamp = BigInt(Math.floor(new Date(date).getTime() / 1000));
+      const createHash = await writeContractAsync({
+        address: FACTORY_ADDRESS,
+        abi: ticketFactoryAbi,
+        functionName: "createEvent",
+        args: [
+          name,
+          venue,
+          dateTimestamp,
+          parseUnits(price, 6),
+          BigInt(maxSupply),
+          transferable,
+        ],
+      });
+      setStatus("Deploying...");
+      const receipt = await waitForTransactionReceipt(config, { hash: createHash });
+
+      queryClient.invalidateQueries();
+
+      try {
+        const eventLog = receipt.logs.find((log) => {
+          try {
+            const decoded = decodeEventLog({
+              abi: ticketFactoryAbi,
+              data: log.data,
+              topics: log.topics,
+            });
+            return decoded.eventName === "EventCreated";
+          } catch {
+            return false;
+          }
+        });
+
+        if (eventLog) {
+          const decoded = decodeEventLog({
+            abi: ticketFactoryAbi,
+            data: eventLog.data,
+            topics: eventLog.topics,
+          });
+          const newAddress = (decoded.args as { eventAddress: string }).eventAddress;
+          toast.success("Event created! Redirecting...");
+          router.push(`/event/${newAddress}`);
+          return;
+        }
+      } catch {
+        // Fall through to generic success
+      }
+      toast.success("Event created!");
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "";
+      toast.error(
+        msg.includes("User rejected") || msg.includes("User denied")
+          ? "Transaction was rejected."
+          : "Transaction failed. Please try again."
+      );
+    } finally {
+      setBusy(false);
+      setStatus("");
+    }
   }
 
   function fieldClass(field: keyof FieldErrors) {
@@ -347,18 +332,10 @@ export default function CreateEventPage() {
 
           <button
             type="submit"
-            disabled={isPending || isConfirming}
+            disabled={busy}
             className="btn-primary w-full"
           >
-            {isPending
-              ? "Confirm in Wallet..."
-              : isConfirming
-                ? needsApproval
-                  ? "Approving..."
-                  : "Deploying..."
-                : needsApproval
-                  ? "Approve USDC"
-                  : "Create Event"}
+            {status || "Create Event"}
           </button>
         </form>
       </div>
