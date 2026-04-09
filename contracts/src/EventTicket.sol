@@ -3,11 +3,13 @@ pragma solidity ^0.8.24;
 
 import {ERC721Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /// @title EventTicket
 /// @notice Each instance represents a single event. Deployed as a minimal proxy
 ///         clone by TicketFactory. Tickets are ERC-721 tokens.
 contract EventTicket is Initializable, ERC721Upgradeable {
+    IERC20 public paymentToken;
     string public venue;
     uint256 public eventDate;
     uint256 public price;
@@ -32,7 +34,6 @@ contract EventTicket is Initializable, ERC721Upgradeable {
     error EventNotActive();
     error EventAlreadyCancelled();
     error SoldOut();
-    error InsufficientPayment();
     error EventAlreadyOccurred();
     error NotTicketHolder();
     error AlreadyRedeemed();
@@ -40,7 +41,7 @@ contract EventTicket is Initializable, ERC721Upgradeable {
     error NoProceeds();
     error NonTransferable();
     error EventNotOver();
-    error TransferFailed();
+    error PaymentFailed();
 
     modifier onlyOrganizer() {
         if (msg.sender != organizer) revert NotOrganizer();
@@ -59,7 +60,8 @@ contract EventTicket is Initializable, ERC721Upgradeable {
         uint256 _price,
         uint256 _maxSupply,
         bool _transferable,
-        address _organizer
+        address _organizer,
+        IERC20 _paymentToken
     ) external initializer {
         __ERC721_init(_name, "TCKT");
         venue = _venue;
@@ -69,27 +71,31 @@ contract EventTicket is Initializable, ERC721Upgradeable {
         transferable = _transferable;
         saleActive = true;
         organizer = _organizer;
+        paymentToken = _paymentToken;
     }
 
-    function buyTicket() external payable returns (uint256 ticketId) {
+    function buyTicket() external returns (uint256 ticketId) {
         if (!saleActive) revert EventNotActive();
         if (cancelled) revert EventAlreadyCancelled();
         if (totalMinted >= maxSupply) revert SoldOut();
-        if (msg.value < price) revert InsufficientPayment();
         if (block.timestamp >= eventDate) revert EventAlreadyOccurred();
+
+        if (!paymentToken.transferFrom(msg.sender, address(this), price)) revert PaymentFailed();
 
         ticketId = totalMinted++;
         _safeMint(msg.sender, ticketId);
 
-        emit TicketPurchased(ticketId, msg.sender, msg.value);
+        emit TicketPurchased(ticketId, msg.sender, price);
     }
 
-    function buyTickets(uint256 quantity) external payable returns (uint256[] memory ticketIds) {
+    function buyTickets(uint256 quantity) external returns (uint256[] memory ticketIds) {
         if (!saleActive) revert EventNotActive();
         if (cancelled) revert EventAlreadyCancelled();
         if (totalMinted + quantity > maxSupply) revert SoldOut();
-        if (msg.value < price * quantity) revert InsufficientPayment();
         if (block.timestamp >= eventDate) revert EventAlreadyOccurred();
+
+        uint256 totalCost = price * quantity;
+        if (!paymentToken.transferFrom(msg.sender, address(this), totalCost)) revert PaymentFailed();
 
         ticketIds = new uint256[](quantity);
         for (uint256 i = 0; i < quantity; i++) {
@@ -124,8 +130,7 @@ contract EventTicket is Initializable, ERC721Upgradeable {
         redeemed[ticketId] = true;
         _burn(ticketId);
 
-        (bool success,) = payable(msg.sender).call{value: price}("");
-        if (!success) revert TransferFailed();
+        if (!paymentToken.transfer(msg.sender, price)) revert PaymentFailed();
 
         emit RefundClaimed(ticketId, msg.sender, price);
     }
@@ -135,11 +140,10 @@ contract EventTicket is Initializable, ERC721Upgradeable {
         if (cancelled) revert EventAlreadyCancelled();
         if (block.timestamp < eventDate) revert EventNotOver();
 
-        uint256 balance = address(this).balance;
+        uint256 balance = paymentToken.balanceOf(address(this));
         if (balance == 0) revert NoProceeds();
 
-        (bool success,) = payable(organizer).call{value: balance}("");
-        if (!success) revert TransferFailed();
+        if (!paymentToken.transfer(organizer, balance)) revert PaymentFailed();
 
         emit ProceedsWithdrawn(organizer, balance);
     }

@@ -5,10 +5,12 @@ import {
   useWriteContract,
   useWaitForTransactionReceipt,
   useReadContract,
+  useAccount,
 } from "wagmi";
-import { parseEther, formatEther } from "viem";
+import { parseUnits, formatUnits, maxUint256 } from "viem";
 import { ticketFactoryAbi } from "@/lib/abi/TicketFactory";
-import { FACTORY_ADDRESS } from "@/lib/contracts";
+import { erc20Abi } from "@/lib/abi/ERC20";
+import { FACTORY_ADDRESS, USDC_ADDRESS } from "@/lib/contracts";
 import Link from "next/link";
 import { toast } from "sonner";
 
@@ -20,10 +22,20 @@ export default function CreateEventPage() {
   const [maxSupply, setMaxSupply] = useState("");
   const [transferable, setTransferable] = useState(false);
 
+  const { address: userAddress } = useAccount();
+
   const { data: creationFee } = useReadContract({
     address: FACTORY_ADDRESS,
     abi: ticketFactoryAbi,
     functionName: "creationFee",
+  });
+
+  const { data: allowance, refetch: refetchAllowance } = useReadContract({
+    address: USDC_ADDRESS,
+    abi: erc20Abi,
+    functionName: "allowance",
+    args: userAddress ? [userAddress, FACTORY_ADDRESS] : undefined,
+    query: { enabled: !!userAddress },
   });
 
   const {
@@ -35,6 +47,12 @@ export default function CreateEventPage() {
   } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } =
     useWaitForTransactionReceipt({ hash });
+
+  const needsApproval =
+    creationFee !== undefined &&
+    creationFee > 0n &&
+    allowance !== undefined &&
+    (allowance as bigint) < (creationFee as bigint);
 
   useEffect(() => {
     if (error) {
@@ -48,14 +66,34 @@ export default function CreateEventPage() {
 
   useEffect(() => {
     if (isSuccess) {
-      toast.success("Event created! It will appear on the home page shortly.");
+      if (needsApproval) {
+        toast.success("USDC approved! You can now create your event.");
+        refetchAllowance();
+        reset();
+      } else {
+        toast.success("Event created! It will appear on the home page shortly.");
+      }
     }
-  }, [isSuccess]);
+  }, [isSuccess, needsApproval, reset, refetchAllowance]);
 
   const minDate = new Date().toISOString().slice(0, 16);
 
+  function handleApprove() {
+    writeContract({
+      address: USDC_ADDRESS,
+      abi: erc20Abi,
+      functionName: "approve",
+      args: [FACTORY_ADDRESS, maxUint256],
+    });
+  }
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+
+    if (needsApproval) {
+      handleApprove();
+      return;
+    }
 
     const selectedDate = new Date(date);
     if (selectedDate <= new Date()) {
@@ -73,11 +111,10 @@ export default function CreateEventPage() {
         name,
         venue,
         dateTimestamp,
-        parseEther(price),
+        parseUnits(price, 6),
         BigInt(maxSupply),
         transferable,
       ],
-      value: creationFee ?? 0n,
     });
   }
 
@@ -95,13 +132,13 @@ export default function CreateEventPage() {
           Deploy a new event contract on Base Sepolia.
           {creationFee !== undefined && (
             <span className="inline-flex items-center gap-1 ml-2 px-2 py-0.5 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-300 text-xs font-medium">
-              Fee: {formatEther(creationFee)} ETH
+              Fee: {formatUnits(creationFee, 6)} USDC
             </span>
           )}
         </p>
       </div>
 
-      {isSuccess ? (
+      {isSuccess && !needsApproval ? (
         <div className="glass p-10 text-center animate-fade-in-up glow-sm">
           <div className="w-14 h-14 mx-auto mb-5 rounded-2xl bg-green-500/10 border border-green-500/20 flex items-center justify-center">
             <svg className="text-green-400" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -183,15 +220,15 @@ export default function CreateEventPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">
-                  Ticket Price (ETH)
+                  Ticket Price (USDC)
                 </label>
                 <input
                   type="number"
-                  step="0.000001"
+                  step="0.01"
                   min="0"
                   value={price}
                   onChange={(e) => setPrice(e.target.value)}
-                  placeholder="0.0001"
+                  placeholder="10"
                   className="input-field"
                   required
                 />
@@ -239,8 +276,12 @@ export default function CreateEventPage() {
               {isPending
                 ? "Confirm in Wallet..."
                 : isConfirming
-                  ? "Deploying..."
-                  : "Create Event"}
+                  ? needsApproval
+                    ? "Approving..."
+                    : "Deploying..."
+                  : needsApproval
+                    ? "Approve USDC"
+                    : "Create Event"}
             </button>
           </form>
         </div>
