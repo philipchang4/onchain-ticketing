@@ -1,0 +1,30 @@
+{
+  "name": "onchain-ticketing",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@rainbow-me/rainbowkit": "^2.2.10",
+    "@tanstack/react-query": "^5.97.0",
+    "next": "^16.2.3",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
+    "viem": "^2.47.11",
+    "wagmi": "^2.19.5"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "autoprefixer": "^10.4.27",
+    "eslint": "^9.39.4",
+    "eslint-config-next": "^16.2.3",
+    "postcss": "^8.5.9",
+    "tailwindcss": "^4.2.2",
+    "typescript": "^5.9.3"
+  }
+}
