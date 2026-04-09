@@ -136,11 +136,11 @@ export default function CreateEventPage() {
               </label>
               <input
                 type="number"
-                step="0.0001"
+                step="0.000001"
                 min="0"
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
-                placeholder="0.05"
+                placeholder="0.0001"
                 className={inputClass}
                 required
               />
