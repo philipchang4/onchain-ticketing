@@ -26,6 +26,9 @@ export default function CreateEventPage() {
   const [price, setPrice] = useState("");
   const [maxSupply, setMaxSupply] = useState("");
   const [transferable, setTransferable] = useState(false);
+  const [imageUrl, setImageUrl] = useState("");
+  const [imagePreview, setImagePreview] = useState("");
+  const [uploading, setUploading] = useState(false);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [touched, setTouched] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
@@ -89,6 +92,30 @@ export default function CreateEventPage() {
     }
   }
 
+  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImagePreview(URL.createObjectURL(file));
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/upload", { method: "POST", body: formData });
+      const data = await res.json();
+      if (data.url) {
+        setImageUrl(data.url);
+      } else {
+        toast.error(data.error || "Upload failed");
+        setImagePreview("");
+      }
+    } catch {
+      toast.error("Upload failed");
+      setImagePreview("");
+    } finally {
+      setUploading(false);
+    }
+  }
+
   const minDate = new Date().toISOString().slice(0, 16);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -133,6 +160,7 @@ export default function CreateEventPage() {
           parseUnits(price, 6),
           BigInt(maxSupply),
           transferable,
+          imageUrl,
         ],
       });
       setStatus("Deploying...");
@@ -225,6 +253,45 @@ export default function CreateEventPage() {
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-accent-500/20 to-transparent" />
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <label className="block text-sm font-medium text-surface-300 mb-2">
+              Cover Image
+            </label>
+            <label
+              className="flex flex-col items-center justify-center w-full h-48 rounded-xl border-2 border-dashed border-white/[0.08] hover:border-accent-500/30 transition-colors duration-200 cursor-pointer overflow-hidden relative"
+            >
+              {imagePreview ? (
+                <img
+                  src={imagePreview}
+                  alt="Preview"
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+              ) : (
+                <div className="flex flex-col items-center gap-2 text-surface-500">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                    <circle cx="8.5" cy="8.5" r="1.5" />
+                    <polyline points="21 15 16 10 5 21" />
+                  </svg>
+                  <span className="text-sm">
+                    {uploading ? "Uploading..." : "Click to upload"}
+                  </span>
+                </div>
+              )}
+              {imagePreview && uploading && (
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                  <span className="text-white text-sm">Uploading...</span>
+                </div>
+              )}
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="hidden"
+              />
+            </label>
+          </div>
+
           <div>
             <label className="block text-sm font-medium text-surface-300 mb-2">
               Event Name

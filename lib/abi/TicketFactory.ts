@@ -9,6 +9,7 @@ export const ticketFactoryAbi = [
       { name: "_price", type: "uint256" },
       { name: "_maxSupply", type: "uint256" },
       { name: "_transferable", type: "bool" },
+      { name: "_imageUrl", type: "string" },
     ],
     outputs: [{ name: "eventAddress", type: "address" }],
     stateMutability: "nonpayable",

@@ -59,7 +59,8 @@ contract OnchainTicketingTest is Test {
             EVENT_DATE,
             TICKET_PRICE,
             MAX_SUPPLY,
-            _transferable
+            _transferable,
+            "https://example.com/image.png"
         );
         vm.stopPrank();
         return eventAddr;
@@ -74,7 +75,8 @@ contract OnchainTicketingTest is Test {
             EVENT_DATE,
             TICKET_PRICE,
             supply,
-            _transferable
+            _transferable,
+            ""
         );
         vm.stopPrank();
         return eventAddr;
@@ -83,7 +85,7 @@ contract OnchainTicketingTest is Test {
     function _approveAndBuy(address buyer, EventTicket ticket) internal returns (uint256) {
         vm.startPrank(buyer);
         usdc.approve(address(ticket), TICKET_PRICE);
-        uint256 ticketId = ticket.buyTicket();
+        uint256 ticketId = ticket.buyTicket("Alice");
         vm.stopPrank();
         return ticketId;
     }
@@ -104,6 +106,7 @@ contract OnchainTicketingTest is Test {
         assertEq(ticket.maxSupply(), MAX_SUPPLY);
         assertEq(ticket.organizer(), organizer);
         assertEq(address(ticket.paymentToken()), address(usdc));
+        assertEq(ticket.imageUrl(), "https://example.com/image.png");
         assertTrue(ticket.saleActive());
         assertFalse(ticket.cancelled());
         assertFalse(ticket.transferable());
@@ -113,7 +116,7 @@ contract OnchainTicketingTest is Test {
         vm.prank(organizer);
         vm.expectRevert();
         factory.createEvent(
-            "Test", "Venue", EVENT_DATE, TICKET_PRICE, MAX_SUPPLY, false
+            "Test", "Venue", EVENT_DATE, TICKET_PRICE, MAX_SUPPLY, false, ""
         );
     }
 
@@ -178,6 +181,7 @@ contract OnchainTicketingTest is Test {
         assertEq(ticket.totalMinted(), 1);
         assertEq(ticket.balanceOf(buyer1), 1);
         assertEq(usdc.balanceOf(eventAddr), TICKET_PRICE);
+        assertEq(ticket.ticketHolderName(0), "Alice");
     }
 
     function test_BuyTicket_NoApproval() public {
@@ -186,7 +190,7 @@ contract OnchainTicketingTest is Test {
 
         vm.prank(buyer1);
         vm.expectRevert();
-        ticket.buyTicket();
+        ticket.buyTicket("Bob");
     }
 
     function test_BuyTicket_EventPassed() public {
@@ -198,7 +202,7 @@ contract OnchainTicketingTest is Test {
         vm.startPrank(buyer1);
         usdc.approve(address(ticket), TICKET_PRICE);
         vm.expectRevert(EventTicket.EventAlreadyOccurred.selector);
-        ticket.buyTicket();
+        ticket.buyTicket("Bob");
         vm.stopPrank();
     }
 
@@ -212,7 +216,7 @@ contract OnchainTicketingTest is Test {
         vm.startPrank(buyer1);
         usdc.approve(address(ticket), TICKET_PRICE);
         vm.expectRevert(EventTicket.EventNotActive.selector);
-        ticket.buyTicket();
+        ticket.buyTicket("Bob");
         vm.stopPrank();
     }
 
@@ -226,7 +230,7 @@ contract OnchainTicketingTest is Test {
         vm.startPrank(buyer1);
         usdc.approve(address(ticket), TICKET_PRICE);
         vm.expectRevert(EventTicket.SoldOut.selector);
-        ticket.buyTicket();
+        ticket.buyTicket("Bob");
         vm.stopPrank();
     }
 
@@ -240,7 +244,7 @@ contract OnchainTicketingTest is Test {
 
         vm.startPrank(buyer1);
         usdc.approve(address(ticket), TICKET_PRICE * 3);
-        uint256[] memory ids = ticket.buyTickets(3);
+        uint256[] memory ids = ticket.buyTickets(3, "Bob");
         vm.stopPrank();
 
         assertEq(ids.length, 3);
@@ -249,6 +253,7 @@ contract OnchainTicketingTest is Test {
         assertEq(usdc.balanceOf(eventAddr), TICKET_PRICE * 3);
         for (uint256 i = 0; i < 3; i++) {
             assertEq(ticket.ownerOf(i), buyer1);
+            assertEq(ticket.ticketHolderName(i), "Bob");
         }
     }
 
@@ -259,7 +264,7 @@ contract OnchainTicketingTest is Test {
         vm.startPrank(buyer1);
         usdc.approve(address(ticket), TICKET_PRICE * 3);
         vm.expectRevert(EventTicket.SoldOut.selector);
-        ticket.buyTickets(3);
+        ticket.buyTickets(3, "Bob");
         vm.stopPrank();
     }
 
@@ -551,13 +556,13 @@ contract OnchainTicketingTest is Test {
         vm.startPrank(buyer1);
         usdc.approve(address(ticket), 100e6);
         vm.expectRevert();
-        ticket.buyTicket();
+        ticket.buyTicket("Bob");
         vm.stopPrank();
 
         // Approve new price — should succeed
         vm.startPrank(buyer1);
         usdc.approve(address(ticket), 200e6);
-        ticket.buyTicket();
+        ticket.buyTicket("Bob");
         vm.stopPrank();
         assertEq(ticket.ownerOf(0), buyer1);
     }

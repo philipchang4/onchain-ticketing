@@ -41,6 +41,7 @@ export function EventCard({
       { ...contract, functionName: "totalMinted" },
       { ...contract, functionName: "cancelled" },
       { ...contract, functionName: "saleActive" },
+      { ...contract, functionName: "imageUrl" },
     ],
   });
 
@@ -48,7 +49,7 @@ export function EventCard({
     return <div className="skeleton h-72" />;
   }
 
-  const [name, venue, eventDate, price, maxSupply, totalMinted, cancelled, saleActive] =
+  const [name, venue, eventDate, price, maxSupply, totalMinted, cancelled, saleActive, imageUrl] =
     data.map((d) => d.result);
 
   const date = eventDate ? new Date(Number(eventDate as bigint) * 1000) : null;
@@ -63,7 +64,19 @@ export function EventCard({
       className="animate-fade-in-up block group"
       style={{ animationDelay: `${index * 70}ms` }}
     >
-      <div className="glass glass-hover relative overflow-hidden p-6 h-full">
+      <div className="glass glass-hover relative overflow-hidden h-full">
+        {(imageUrl as string) ? (
+          <div className="h-36 w-full overflow-hidden">
+            <img
+              src={imageUrl as string}
+              alt=""
+              className="w-full h-full object-cover"
+            />
+          </div>
+        ) : (
+          <div className="h-20 w-full bg-gradient-to-br from-accent-500/10 to-transparent" />
+        )}
+        <div className="p-6">
         {/* Warm top highlight */}
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-accent-500/30 to-transparent" />
 
@@ -133,6 +146,7 @@ export function EventCard({
             </div>
           </div>
         )}
+        </div>
       </div>
     </Link>
   );

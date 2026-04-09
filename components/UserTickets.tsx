@@ -12,7 +12,7 @@ export function UserTickets({
   cancelled,
 }: {
   address: `0x${string}`;
-  tickets: { ticketId: number; redeemed: boolean }[];
+  tickets: { ticketId: number; redeemed: boolean; holderName?: string }[];
   cancelled: boolean;
 }) {
   const queryClient = useQueryClient();
@@ -66,6 +66,11 @@ export function UserTickets({
               <span className="text-surface-50 font-mono text-sm">
                 #{t.ticketId}
               </span>
+              {t.holderName && (
+                <span className="text-surface-300 text-sm truncate max-w-[120px]">
+                  {t.holderName}
+                </span>
+              )}
               {t.redeemed ? (
                 <span className="text-[10px] font-medium bg-surface-700 text-surface-400 px-2 py-0.5 rounded-full">
                   Redeemed

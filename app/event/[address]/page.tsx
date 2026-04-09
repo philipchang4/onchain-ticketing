@@ -26,6 +26,7 @@ function useEventData(address: `0x${string}`) {
       { ...contract, functionName: "saleActive" },
       { ...contract, functionName: "cancelled" },
       { ...contract, functionName: "organizer" },
+      { ...contract, functionName: "imageUrl" },
     ],
   });
 }
@@ -56,21 +57,30 @@ function useUserTickets(
       .filter((t) => t.owner?.toLowerCase() === userAddress?.toLowerCase())
       .map((t) => t.ticketId) ?? [];
 
-  const redeemedContracts = userTicketIds.map((id) => ({
-    address: eventAddress,
-    abi: eventTicketAbi,
-    functionName: "redeemed" as const,
-    args: [BigInt(id)] as const,
-  }));
+  const detailContracts = userTicketIds.flatMap((id) => [
+    {
+      address: eventAddress,
+      abi: eventTicketAbi,
+      functionName: "redeemed" as const,
+      args: [BigInt(id)] as const,
+    },
+    {
+      address: eventAddress,
+      abi: eventTicketAbi,
+      functionName: "ticketHolderName" as const,
+      args: [BigInt(id)] as const,
+    },
+  ]);
 
-  const { data: redeemedResults } = useReadContracts({
-    contracts: redeemedContracts,
+  const { data: detailResults } = useReadContracts({
+    contracts: detailContracts,
     query: { enabled: userTicketIds.length > 0 },
   });
 
   return userTicketIds.map((id, i) => ({
     ticketId: id,
-    redeemed: (redeemedResults?.[i]?.result as boolean) ?? false,
+    redeemed: (detailResults?.[i * 2]?.result as boolean) ?? false,
+    holderName: (detailResults?.[i * 2 + 1]?.result as string) ?? "",
   }));
 }
 
@@ -92,6 +102,7 @@ export default function EventDetailPage() {
   const saleActive = data?.[7]?.result as boolean | undefined;
   const cancelled = data?.[8]?.result as boolean | undefined;
   const organizer = data?.[9]?.result as string | undefined;
+  const eventImageUrl = data?.[10]?.result as string | undefined;
 
   const totalMintedNum = totalMinted !== undefined ? Number(totalMinted) : 0;
   const userTickets = useUserTickets(address, userAddress, totalMintedNum);
@@ -148,9 +159,15 @@ export default function EventDetailPage() {
       </Link>
 
       {/* Event header */}
-      <div className="glass relative overflow-hidden p-8 mb-8">
+      <div className="glass relative overflow-hidden mb-8">
+        {eventImageUrl && (
+          <div className="h-48 md:h-64 w-full overflow-hidden">
+            <img src={eventImageUrl} alt="" className="w-full h-full object-cover" />
+          </div>
+        )}
+        <div className="p-8 relative">
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-accent-500/40 to-transparent" />
-        <div className="absolute -top-24 -right-24 w-48 h-48 bg-accent-500/[0.07] rounded-full blur-[80px]" />
+        {!eventImageUrl && <div className="absolute -top-24 -right-24 w-48 h-48 bg-accent-500/[0.07] rounded-full blur-[80px]" />}
 
         <div className="relative flex items-start justify-between">
           <div>
@@ -170,6 +187,7 @@ export default function EventDetailPage() {
               Cancelled
             </span>
           )}
+        </div>
         </div>
       </div>
 

@@ -11,6 +11,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 contract EventTicket is Initializable, ERC721Upgradeable {
     IERC20 public paymentToken;
     string public venue;
+    string public imageUrl;
     uint256 public eventDate;
     uint256 public price;
     uint256 public maxSupply;
@@ -21,6 +22,7 @@ contract EventTicket is Initializable, ERC721Upgradeable {
     address public organizer;
 
     mapping(uint256 ticketId => bool) public redeemed;
+    mapping(uint256 ticketId => string) public ticketHolderName;
 
     event TicketPurchased(uint256 indexed ticketId, address indexed buyer, uint256 price);
     event TicketRedeemed(uint256 indexed ticketId, address indexed holder);
@@ -43,6 +45,18 @@ contract EventTicket is Initializable, ERC721Upgradeable {
     error EventNotOver();
     error PaymentFailed();
 
+    struct InitParams {
+        string name;
+        string venue;
+        uint256 date;
+        uint256 price;
+        uint256 maxSupply;
+        bool transferable;
+        address organizer;
+        IERC20 paymentToken;
+        string imageUrl;
+    }
+
     modifier onlyOrganizer() {
         if (msg.sender != organizer) revert NotOrganizer();
         _;
@@ -53,28 +67,20 @@ contract EventTicket is Initializable, ERC721Upgradeable {
         _disableInitializers();
     }
 
-    function initialize(
-        string calldata _name,
-        string calldata _venue,
-        uint256 _date,
-        uint256 _price,
-        uint256 _maxSupply,
-        bool _transferable,
-        address _organizer,
-        IERC20 _paymentToken
-    ) external initializer {
-        __ERC721_init(_name, "TCKT");
-        venue = _venue;
-        eventDate = _date;
-        price = _price;
-        maxSupply = _maxSupply;
-        transferable = _transferable;
+    function initialize(InitParams calldata p) external initializer {
+        __ERC721_init(p.name, "TCKT");
+        venue = p.venue;
+        imageUrl = p.imageUrl;
+        eventDate = p.date;
+        price = p.price;
+        maxSupply = p.maxSupply;
+        transferable = p.transferable;
         saleActive = true;
-        organizer = _organizer;
-        paymentToken = _paymentToken;
+        organizer = p.organizer;
+        paymentToken = p.paymentToken;
     }
 
-    function buyTicket() external returns (uint256 ticketId) {
+    function buyTicket(string calldata _name) external returns (uint256 ticketId) {
         if (!saleActive) revert EventNotActive();
         if (cancelled) revert EventAlreadyCancelled();
         if (totalMinted >= maxSupply) revert SoldOut();
@@ -83,12 +89,13 @@ contract EventTicket is Initializable, ERC721Upgradeable {
         if (!paymentToken.transferFrom(msg.sender, address(this), price)) revert PaymentFailed();
 
         ticketId = totalMinted++;
+        ticketHolderName[ticketId] = _name;
         _safeMint(msg.sender, ticketId);
 
         emit TicketPurchased(ticketId, msg.sender, price);
     }
 
-    function buyTickets(uint256 quantity) external returns (uint256[] memory ticketIds) {
+    function buyTickets(uint256 quantity, string calldata _name) external returns (uint256[] memory ticketIds) {
         if (!saleActive) revert EventNotActive();
         if (cancelled) revert EventAlreadyCancelled();
         if (totalMinted + quantity > maxSupply) revert SoldOut();
@@ -100,6 +107,7 @@ contract EventTicket is Initializable, ERC721Upgradeable {
         ticketIds = new uint256[](quantity);
         for (uint256 i = 0; i < quantity; i++) {
             uint256 ticketId = totalMinted++;
+            ticketHolderName[ticketId] = _name;
             _safeMint(msg.sender, ticketId);
             ticketIds[i] = ticketId;
             emit TicketPurchased(ticketId, msg.sender, price);

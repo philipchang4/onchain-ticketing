@@ -44,7 +44,8 @@ contract TicketFactory is Ownable {
         uint256 _date,
         uint256 _price,
         uint256 _maxSupply,
-        bool _transferable
+        bool _transferable,
+        string calldata _imageUrl
     ) external returns (address eventAddress) {
         if (creationFee > 0) {
             if (!paymentToken.transferFrom(msg.sender, address(this), creationFee)) revert PaymentFailed();
@@ -53,14 +54,17 @@ contract TicketFactory is Ownable {
         eventAddress = implementation.clone();
 
         EventTicket(eventAddress).initialize(
-            _name,
-            _venue,
-            _date,
-            _price,
-            _maxSupply,
-            _transferable,
-            msg.sender,
-            paymentToken
+            EventTicket.InitParams({
+                name: _name,
+                venue: _venue,
+                date: _date,
+                price: _price,
+                maxSupply: _maxSupply,
+                transferable: _transferable,
+                organizer: msg.sender,
+                paymentToken: paymentToken,
+                imageUrl: _imageUrl
+            })
         );
 
         events.push(eventAddress);

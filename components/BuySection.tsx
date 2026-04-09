@@ -28,6 +28,7 @@ export function BuySection({
   onPurchase?: () => void;
 }) {
   const [quantity, setQuantity] = useState(1);
+  const [buyerName, setBuyerName] = useState("");
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState("");
 
@@ -72,13 +73,14 @@ export function BuySection({
           address,
           abi: eventTicketAbi,
           functionName: "buyTicket",
+          args: [buyerName],
         });
       } else {
         buyHash = await writeContractAsync({
           address,
           abi: eventTicketAbi,
           functionName: "buyTickets",
-          args: [BigInt(quantity)],
+          args: [BigInt(quantity), buyerName],
         });
       }
       setStatus("Confirming...");
@@ -126,6 +128,19 @@ export function BuySection({
       </div>
 
       {canBuy && !busy && (
+        <div className="my-4">
+          <label className="block text-surface-400 text-sm mb-1.5">Your Name</label>
+          <input
+            type="text"
+            value={buyerName}
+            onChange={(e) => setBuyerName(e.target.value)}
+            placeholder="Enter your name for the ticket"
+            className="input-field !py-2 !text-sm"
+          />
+        </div>
+      )}
+
+      {canBuy && !busy && (
         <div className="flex items-center gap-3 my-5">
           <span className="text-surface-400 text-sm">Qty</span>
           <div className="flex items-center rounded-xl border border-white/[0.06] overflow-hidden">
@@ -157,7 +172,7 @@ export function BuySection({
 
       <button
         onClick={handleBuy}
-        disabled={!canBuy || busy}
+        disabled={!canBuy || busy || !buyerName.trim()}
         className="btn-primary w-full"
       >
         {buttonLabel()}

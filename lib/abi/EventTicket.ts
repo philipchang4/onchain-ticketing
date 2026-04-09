@@ -86,6 +86,20 @@ export const eventTicketAbi = [
   },
   {
     type: "function",
+    name: "imageUrl",
+    inputs: [],
+    outputs: [{ name: "", type: "string" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "ticketHolderName",
+    inputs: [{ name: "ticketId", type: "uint256" }],
+    outputs: [{ name: "", type: "string" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
     name: "redeemed",
     inputs: [{ name: "ticketId", type: "uint256" }],
     outputs: [{ name: "", type: "bool" }],
@@ -109,14 +123,17 @@ export const eventTicketAbi = [
   {
     type: "function",
     name: "buyTicket",
-    inputs: [],
+    inputs: [{ name: "_name", type: "string" }],
     outputs: [{ name: "ticketId", type: "uint256" }],
     stateMutability: "nonpayable",
   },
   {
     type: "function",
     name: "buyTickets",
-    inputs: [{ name: "quantity", type: "uint256" }],
+    inputs: [
+      { name: "quantity", type: "uint256" },
+      { name: "_name", type: "string" },
+    ],
     outputs: [{ name: "ticketIds", type: "uint256[]" }],
     stateMutability: "nonpayable",
   },
