@@ -63,8 +63,8 @@ function TicketList({ userAddress }: { userAddress: `0x${string}` }) {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {eventsWithTickets.map((address) => (
-        <EventCard key={address} address={address} />
+      {eventsWithTickets.map((address, i) => (
+        <EventCard key={address} address={address} index={i} />
       ))}
     </div>
   );

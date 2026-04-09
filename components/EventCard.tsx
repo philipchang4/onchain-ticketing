@@ -5,7 +5,30 @@ import { useReadContracts } from "wagmi";
 import { formatEther } from "viem";
 import { eventTicketAbi } from "@/lib/abi/EventTicket";
 
-export function EventCard({ address }: { address: `0x${string}` }) {
+function relativeDate(date: Date): string {
+  const now = new Date();
+  const diffMs = date.getTime() - now.getTime();
+  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDays < 0) return "Past";
+  if (diffDays === 0) return "Today";
+  if (diffDays === 1) return "Tomorrow";
+  if (diffDays <= 7) return `In ${diffDays} days`;
+  if (diffDays <= 30) return `In ${Math.ceil(diffDays / 7)} weeks`;
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+export function EventCard({
+  address,
+  index = 0,
+}: {
+  address: `0x${string}`;
+  index?: number;
+}) {
   const contract = { address, abi: eventTicketAbi } as const;
 
   const { data, isLoading } = useReadContracts({
@@ -33,17 +56,21 @@ export function EventCard({ address }: { address: `0x${string}` }) {
   const date = eventDate
     ? new Date(Number(eventDate as bigint) * 1000)
     : null;
-  const remaining =
-    maxSupply !== undefined && totalMinted !== undefined
-      ? Number(maxSupply as bigint) - Number(totalMinted as bigint)
-      : null;
+  const maxNum = maxSupply !== undefined ? Number(maxSupply as bigint) : 0;
+  const mintedNum = totalMinted !== undefined ? Number(totalMinted as bigint) : 0;
+  const remaining = maxNum - mintedNum;
+  const soldPercent = maxNum > 0 ? (mintedNum / maxNum) * 100 : 0;
 
   return (
-    <Link href={`/event/${address}`}>
-      <div className="rounded-xl border border-slate-800 bg-slate-900 p-6 hover:border-brand-500 transition-all hover:shadow-lg hover:shadow-brand-500/5 group">
+    <Link
+      href={`/event/${address}`}
+      className="animate-fade-in-up block"
+      style={{ animationDelay: `${index * 60}ms` }}
+    >
+      <div className="rounded-xl border border-slate-800 bg-slate-900 p-6 transition-all duration-200 group hover:border-brand-500/60 hover:shadow-lg hover:shadow-brand-500/5 hover:-translate-y-0.5">
         <div className="flex items-start justify-between mb-3">
           <div className="flex-1 min-w-0">
-            <h3 className="text-lg font-semibold text-white truncate group-hover:text-brand-400 transition-colors">
+            <h3 className="text-lg font-semibold text-white truncate group-hover:text-brand-400 transition-colors duration-200">
               {(name as string) ?? "..."}
             </h3>
             <p className="text-slate-400 text-sm truncate">
@@ -69,13 +96,7 @@ export function EventCard({ address }: { address: `0x${string}` }) {
           <div className="flex justify-between">
             <span className="text-slate-500">Date</span>
             <span className="text-slate-300">
-              {date
-                ? date.toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                    year: "numeric",
-                  })
-                : "..."}
+              {date ? relativeDate(date) : "..."}
             </span>
           </div>
           <div className="flex justify-between">
@@ -90,11 +111,25 @@ export function EventCard({ address }: { address: `0x${string}` }) {
             <span className="text-slate-500">Remaining</span>
             <span className="text-slate-300">
               {remaining !== null
-                ? `${remaining} / ${Number(maxSupply as bigint)}`
+                ? `${remaining} / ${maxNum}`
                 : "..."}
             </span>
           </div>
         </div>
+
+        {maxNum > 0 && (
+          <div className="mt-4">
+            <div className="h-1 rounded-full bg-slate-800 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-brand-500 transition-all duration-500"
+                style={{ width: `${soldPercent}%` }}
+              />
+            </div>
+            <p className="text-slate-600 text-xs mt-1">
+              {soldPercent.toFixed(0)}% sold
+            </p>
+          </div>
+        )}
       </div>
     </Link>
   );

@@ -1,0 +1,118 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { eventTicketAbi } from "@/lib/abi/EventTicket";
+import { toast } from "sonner";
+
+export function OrganizerPanel({
+  address,
+  saleActive,
+}: {
+  address: `0x${string}`;
+  saleActive: boolean;
+}) {
+  const [confirmCancel, setConfirmCancel] = useState(false);
+
+  const {
+    writeContract,
+    data: hash,
+    isPending,
+    error,
+    reset,
+  } = useWriteContract();
+  const { isLoading: isConfirming, isSuccess } =
+    useWaitForTransactionReceipt({ hash });
+  const busy = isPending || isConfirming;
+
+  useEffect(() => {
+    if (error) {
+      toast.error(
+        error.message.includes("User rejected")
+          ? "Transaction rejected."
+          : "Transaction failed."
+      );
+      reset();
+      setConfirmCancel(false);
+    }
+  }, [error, reset]);
+
+  useEffect(() => {
+    if (isSuccess) {
+      toast.success("Transaction confirmed!");
+      reset();
+      setConfirmCancel(false);
+    }
+  }, [isSuccess, reset]);
+
+  return (
+    <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-6">
+      <h2 className="text-lg font-semibold text-amber-400 mb-4">
+        Organizer Controls
+      </h2>
+      <div className="flex flex-wrap gap-3">
+        <button
+          onClick={() =>
+            writeContract({
+              address,
+              abi: eventTicketAbi,
+              functionName: "setSaleActive",
+              args: [!saleActive],
+            })
+          }
+          disabled={busy}
+          className="btn-press px-4 py-2 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 disabled:opacity-50 transition-colors duration-200 text-sm"
+        >
+          {busy ? "..." : saleActive ? "Pause Sales" : "Resume Sales"}
+        </button>
+
+        {confirmCancel ? (
+          <div className="flex items-center gap-2 animate-fade-in">
+            <span className="text-red-400 text-sm">Are you sure?</span>
+            <button
+              onClick={() =>
+                writeContract({
+                  address,
+                  abi: eventTicketAbi,
+                  functionName: "cancelEvent",
+                })
+              }
+              disabled={busy}
+              className="btn-press px-3 py-1.5 rounded-lg bg-red-600 text-white text-sm hover:bg-red-500 disabled:opacity-50 transition-colors duration-200"
+            >
+              Yes, Cancel Event
+            </button>
+            <button
+              onClick={() => setConfirmCancel(false)}
+              className="btn-press px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 text-sm hover:bg-slate-700 transition-colors duration-200"
+            >
+              No
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setConfirmCancel(true)}
+            disabled={busy}
+            className="btn-press px-4 py-2 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 disabled:opacity-50 transition-colors duration-200 text-sm"
+          >
+            Cancel Event
+          </button>
+        )}
+
+        <button
+          onClick={() =>
+            writeContract({
+              address,
+              abi: eventTicketAbi,
+              functionName: "withdrawProceeds",
+            })
+          }
+          disabled={busy}
+          className="btn-press px-4 py-2 rounded-lg bg-green-500/20 text-green-400 hover:bg-green-500/30 disabled:opacity-50 transition-colors duration-200 text-sm"
+        >
+          Withdraw Proceeds
+        </button>
+      </div>
+    </div>
+  );
+}
