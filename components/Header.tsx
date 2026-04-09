@@ -9,6 +9,7 @@ const NAV_LINKS = [
   { href: "/", label: "Events" },
   { href: "/create", label: "Create" },
   { href: "/my-tickets", label: "My Tickets" },
+  { href: "/scan", label: "Scan" },
 ];
 
 function NavLink({

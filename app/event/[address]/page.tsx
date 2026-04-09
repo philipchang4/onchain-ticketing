@@ -273,6 +273,7 @@ export default function EventDetailPage() {
           <OrganizerPanel
             address={address}
             saleActive={saleActive ?? false}
+            currentPrice={price ?? 0n}
           />
         )}
       </div>
