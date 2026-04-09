@@ -11,7 +11,7 @@ export const ticketFactoryAbi = [
       { name: "_transferable", type: "bool" },
     ],
     outputs: [{ name: "eventAddress", type: "address" }],
-    stateMutability: "payable",
+    stateMutability: "nonpayable",
   },
   {
     type: "function",

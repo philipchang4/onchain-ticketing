@@ -2,43 +2,58 @@
 pragma solidity ^0.8.24;
 
 import {Test} from "forge-std/Test.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {EventTicket} from "../src/EventTicket.sol";
 import {TicketFactory} from "../src/TicketFactory.sol";
+
+contract MockUSDC is ERC20 {
+    constructor() ERC20("USD Coin", "USDC") {}
+
+    function decimals() public pure override returns (uint8) {
+        return 6;
+    }
+
+    function mint(address to, uint256 amount) external {
+        _mint(to, amount);
+    }
+}
 
 contract OnchainTicketingTest is Test {
     TicketFactory factory;
     EventTicket implementation;
+    MockUSDC usdc;
 
     address owner = address(this);
     address organizer = makeAddr("organizer");
     address buyer1 = makeAddr("buyer1");
     address buyer2 = makeAddr("buyer2");
 
-    uint256 constant CREATION_FEE = 0.01 ether;
-    uint256 constant TICKET_PRICE = 0.1 ether;
+    uint256 constant CREATION_FEE = 1e6; // 1 USDC
+    uint256 constant TICKET_PRICE = 100e6; // 100 USDC (6 decimals)
     uint256 constant MAX_SUPPLY = 100;
     uint256 constant EVENT_DATE = 1_000_000;
 
     function setUp() public {
+        usdc = new MockUSDC();
         implementation = new EventTicket();
-        factory = new TicketFactory(address(implementation), CREATION_FEE);
+        factory = new TicketFactory(address(implementation), CREATION_FEE, IERC20(address(usdc)));
 
-        vm.deal(organizer, 10 ether);
-        vm.deal(buyer1, 10 ether);
-        vm.deal(buyer2, 10 ether);
+        usdc.mint(organizer, 10_000e6);
+        usdc.mint(buyer1, 10_000e6);
+        usdc.mint(buyer2, 10_000e6);
 
         vm.warp(100);
     }
-
-    receive() external payable {}
 
     // ---------------------------------------------------------------
     //  Helpers
     // ---------------------------------------------------------------
 
     function _createEvent(bool _transferable) internal returns (address) {
-        vm.prank(organizer);
-        return factory.createEvent{value: CREATION_FEE}(
+        vm.startPrank(organizer);
+        usdc.approve(address(factory), CREATION_FEE);
+        address eventAddr = factory.createEvent(
             "Test Concert",
             "Madison Square Garden",
             EVENT_DATE,
@@ -46,11 +61,14 @@ contract OnchainTicketingTest is Test {
             MAX_SUPPLY,
             _transferable
         );
+        vm.stopPrank();
+        return eventAddr;
     }
 
     function _createSmallEvent(uint256 supply, bool _transferable) internal returns (address) {
-        vm.prank(organizer);
-        return factory.createEvent{value: CREATION_FEE}(
+        vm.startPrank(organizer);
+        usdc.approve(address(factory), CREATION_FEE);
+        address eventAddr = factory.createEvent(
             "Small Show",
             "Club",
             EVENT_DATE,
@@ -58,6 +76,16 @@ contract OnchainTicketingTest is Test {
             supply,
             _transferable
         );
+        vm.stopPrank();
+        return eventAddr;
+    }
+
+    function _approveAndBuy(address buyer, EventTicket ticket) internal returns (uint256) {
+        vm.startPrank(buyer);
+        usdc.approve(address(ticket), TICKET_PRICE);
+        uint256 ticketId = ticket.buyTicket();
+        vm.stopPrank();
+        return ticketId;
     }
 
     // ---------------------------------------------------------------
@@ -75,15 +103,16 @@ contract OnchainTicketingTest is Test {
         assertEq(ticket.price(), TICKET_PRICE);
         assertEq(ticket.maxSupply(), MAX_SUPPLY);
         assertEq(ticket.organizer(), organizer);
+        assertEq(address(ticket.paymentToken()), address(usdc));
         assertTrue(ticket.saleActive());
         assertFalse(ticket.cancelled());
         assertFalse(ticket.transferable());
     }
 
-    function test_CreateEvent_InsufficientFee() public {
+    function test_CreateEvent_NoApproval() public {
         vm.prank(organizer);
-        vm.expectRevert(TicketFactory.InsufficientCreationFee.selector);
-        factory.createEvent{value: 0}(
+        vm.expectRevert();
+        factory.createEvent(
             "Test", "Venue", EVENT_DATE, TICKET_PRICE, MAX_SUPPLY, false
         );
     }
@@ -103,22 +132,22 @@ contract OnchainTicketingTest is Test {
     // ---------------------------------------------------------------
 
     function test_FactoryOwnerCanSetFee() public {
-        factory.setCreationFee(0.05 ether);
-        assertEq(factory.creationFee(), 0.05 ether);
+        factory.setCreationFee(5e6);
+        assertEq(factory.creationFee(), 5e6);
     }
 
     function test_FactoryNonOwnerCannotSetFee() public {
         vm.prank(buyer1);
         vm.expectRevert();
-        factory.setCreationFee(0.05 ether);
+        factory.setCreationFee(5e6);
     }
 
     function test_FactoryOwnerCanWithdrawFees() public {
         _createEvent(false);
 
-        uint256 balBefore = address(owner).balance;
+        uint256 balBefore = usdc.balanceOf(owner);
         factory.withdrawFees();
-        assertEq(address(owner).balance - balBefore, CREATION_FEE);
+        assertEq(usdc.balanceOf(owner) - balBefore, CREATION_FEE);
     }
 
     function test_FactoryNonOwnerCannotWithdrawFees() public {
@@ -142,22 +171,22 @@ contract OnchainTicketingTest is Test {
         address eventAddr = _createEvent(false);
         EventTicket ticket = EventTicket(eventAddr);
 
-        vm.prank(buyer1);
-        uint256 ticketId = ticket.buyTicket{value: TICKET_PRICE}();
+        uint256 ticketId = _approveAndBuy(buyer1, ticket);
 
         assertEq(ticketId, 0);
         assertEq(ticket.ownerOf(0), buyer1);
         assertEq(ticket.totalMinted(), 1);
         assertEq(ticket.balanceOf(buyer1), 1);
+        assertEq(usdc.balanceOf(eventAddr), TICKET_PRICE);
     }
 
-    function test_BuyTicket_InsufficientPayment() public {
+    function test_BuyTicket_NoApproval() public {
         address eventAddr = _createEvent(false);
         EventTicket ticket = EventTicket(eventAddr);
 
         vm.prank(buyer1);
-        vm.expectRevert(EventTicket.InsufficientPayment.selector);
-        ticket.buyTicket{value: 0.05 ether}();
+        vm.expectRevert();
+        ticket.buyTicket();
     }
 
     function test_BuyTicket_EventPassed() public {
@@ -166,9 +195,11 @@ contract OnchainTicketingTest is Test {
 
         vm.warp(EVENT_DATE + 1);
 
-        vm.prank(buyer1);
+        vm.startPrank(buyer1);
+        usdc.approve(address(ticket), TICKET_PRICE);
         vm.expectRevert(EventTicket.EventAlreadyOccurred.selector);
-        ticket.buyTicket{value: TICKET_PRICE}();
+        ticket.buyTicket();
+        vm.stopPrank();
     }
 
     function test_BuyTicket_SalePaused() public {
@@ -178,23 +209,25 @@ contract OnchainTicketingTest is Test {
         vm.prank(organizer);
         ticket.setSaleActive(false);
 
-        vm.prank(buyer1);
+        vm.startPrank(buyer1);
+        usdc.approve(address(ticket), TICKET_PRICE);
         vm.expectRevert(EventTicket.EventNotActive.selector);
-        ticket.buyTicket{value: TICKET_PRICE}();
+        ticket.buyTicket();
+        vm.stopPrank();
     }
 
     function test_BuyTicket_SoldOut() public {
         address eventAddr = _createSmallEvent(2, false);
         EventTicket ticket = EventTicket(eventAddr);
 
-        vm.prank(buyer1);
-        ticket.buyTicket{value: TICKET_PRICE}();
-        vm.prank(buyer2);
-        ticket.buyTicket{value: TICKET_PRICE}();
+        _approveAndBuy(buyer1, ticket);
+        _approveAndBuy(buyer2, ticket);
 
-        vm.prank(buyer1);
+        vm.startPrank(buyer1);
+        usdc.approve(address(ticket), TICKET_PRICE);
         vm.expectRevert(EventTicket.SoldOut.selector);
-        ticket.buyTicket{value: TICKET_PRICE}();
+        ticket.buyTicket();
+        vm.stopPrank();
     }
 
     // ---------------------------------------------------------------
@@ -205,12 +238,15 @@ contract OnchainTicketingTest is Test {
         address eventAddr = _createEvent(false);
         EventTicket ticket = EventTicket(eventAddr);
 
-        vm.prank(buyer1);
-        uint256[] memory ids = ticket.buyTickets{value: TICKET_PRICE * 3}(3);
+        vm.startPrank(buyer1);
+        usdc.approve(address(ticket), TICKET_PRICE * 3);
+        uint256[] memory ids = ticket.buyTickets(3);
+        vm.stopPrank();
 
         assertEq(ids.length, 3);
         assertEq(ticket.totalMinted(), 3);
         assertEq(ticket.balanceOf(buyer1), 3);
+        assertEq(usdc.balanceOf(eventAddr), TICKET_PRICE * 3);
         for (uint256 i = 0; i < 3; i++) {
             assertEq(ticket.ownerOf(i), buyer1);
         }
@@ -220,9 +256,11 @@ contract OnchainTicketingTest is Test {
         address eventAddr = _createSmallEvent(2, false);
         EventTicket ticket = EventTicket(eventAddr);
 
-        vm.prank(buyer1);
+        vm.startPrank(buyer1);
+        usdc.approve(address(ticket), TICKET_PRICE * 3);
         vm.expectRevert(EventTicket.SoldOut.selector);
-        ticket.buyTickets{value: TICKET_PRICE * 3}(3);
+        ticket.buyTickets(3);
+        vm.stopPrank();
     }
 
     // ---------------------------------------------------------------
@@ -233,8 +271,7 @@ contract OnchainTicketingTest is Test {
         address eventAddr = _createEvent(false);
         EventTicket ticket = EventTicket(eventAddr);
 
-        vm.prank(buyer1);
-        ticket.buyTicket{value: TICKET_PRICE}();
+        _approveAndBuy(buyer1, ticket);
 
         vm.prank(buyer1);
         vm.expectRevert(EventTicket.NonTransferable.selector);
@@ -245,8 +282,7 @@ contract OnchainTicketingTest is Test {
         address eventAddr = _createEvent(true);
         EventTicket ticket = EventTicket(eventAddr);
 
-        vm.prank(buyer1);
-        ticket.buyTicket{value: TICKET_PRICE}();
+        _approveAndBuy(buyer1, ticket);
 
         vm.prank(buyer1);
         ticket.transferFrom(buyer1, buyer2, 0);
@@ -262,8 +298,7 @@ contract OnchainTicketingTest is Test {
         address eventAddr = _createEvent(false);
         EventTicket ticket = EventTicket(eventAddr);
 
-        vm.prank(buyer1);
-        ticket.buyTicket{value: TICKET_PRICE}();
+        _approveAndBuy(buyer1, ticket);
 
         vm.prank(buyer1);
         ticket.redeemTicket(0);
@@ -275,8 +310,7 @@ contract OnchainTicketingTest is Test {
         address eventAddr = _createEvent(false);
         EventTicket ticket = EventTicket(eventAddr);
 
-        vm.prank(buyer1);
-        ticket.buyTicket{value: TICKET_PRICE}();
+        _approveAndBuy(buyer1, ticket);
 
         vm.prank(buyer2);
         vm.expectRevert(EventTicket.NotTicketHolder.selector);
@@ -287,8 +321,7 @@ contract OnchainTicketingTest is Test {
         address eventAddr = _createEvent(false);
         EventTicket ticket = EventTicket(eventAddr);
 
-        vm.prank(buyer1);
-        ticket.buyTicket{value: TICKET_PRICE}();
+        _approveAndBuy(buyer1, ticket);
 
         vm.prank(buyer1);
         ticket.redeemTicket(0);
@@ -349,25 +382,23 @@ contract OnchainTicketingTest is Test {
         address eventAddr = _createEvent(false);
         EventTicket ticket = EventTicket(eventAddr);
 
-        vm.prank(buyer1);
-        ticket.buyTicket{value: TICKET_PRICE}();
+        _approveAndBuy(buyer1, ticket);
 
         vm.prank(organizer);
         ticket.cancelEvent();
 
-        uint256 balBefore = buyer1.balance;
+        uint256 balBefore = usdc.balanceOf(buyer1);
         vm.prank(buyer1);
         ticket.claimRefund(0);
 
-        assertEq(buyer1.balance - balBefore, TICKET_PRICE);
+        assertEq(usdc.balanceOf(buyer1) - balBefore, TICKET_PRICE);
     }
 
     function test_ClaimRefund_EventNotCancelled() public {
         address eventAddr = _createEvent(false);
         EventTicket ticket = EventTicket(eventAddr);
 
-        vm.prank(buyer1);
-        ticket.buyTicket{value: TICKET_PRICE}();
+        _approveAndBuy(buyer1, ticket);
 
         vm.prank(buyer1);
         vm.expectRevert(EventTicket.EventNotCancelled.selector);
@@ -378,8 +409,7 @@ contract OnchainTicketingTest is Test {
         address eventAddr = _createEvent(false);
         EventTicket ticket = EventTicket(eventAddr);
 
-        vm.prank(buyer1);
-        ticket.buyTicket{value: TICKET_PRICE}();
+        _approveAndBuy(buyer1, ticket);
 
         vm.prank(buyer1);
         ticket.redeemTicket(0);
@@ -400,24 +430,22 @@ contract OnchainTicketingTest is Test {
         address eventAddr = _createEvent(false);
         EventTicket ticket = EventTicket(eventAddr);
 
-        vm.prank(buyer1);
-        ticket.buyTicket{value: TICKET_PRICE}();
+        _approveAndBuy(buyer1, ticket);
 
         vm.warp(EVENT_DATE + 1);
 
-        uint256 balBefore = organizer.balance;
+        uint256 balBefore = usdc.balanceOf(organizer);
         vm.prank(organizer);
         ticket.withdrawProceeds();
 
-        assertEq(organizer.balance - balBefore, TICKET_PRICE);
+        assertEq(usdc.balanceOf(organizer) - balBefore, TICKET_PRICE);
     }
 
     function test_WithdrawProceeds_BeforeEvent() public {
         address eventAddr = _createEvent(false);
         EventTicket ticket = EventTicket(eventAddr);
 
-        vm.prank(buyer1);
-        ticket.buyTicket{value: TICKET_PRICE}();
+        _approveAndBuy(buyer1, ticket);
 
         vm.prank(organizer);
         vm.expectRevert(EventTicket.EventNotOver.selector);
@@ -428,8 +456,7 @@ contract OnchainTicketingTest is Test {
         address eventAddr = _createEvent(false);
         EventTicket ticket = EventTicket(eventAddr);
 
-        vm.prank(buyer1);
-        ticket.buyTicket{value: TICKET_PRICE}();
+        _approveAndBuy(buyer1, ticket);
 
         vm.warp(EVENT_DATE + 1);
 
@@ -442,8 +469,7 @@ contract OnchainTicketingTest is Test {
         address eventAddr = _createEvent(false);
         EventTicket ticket = EventTicket(eventAddr);
 
-        vm.prank(buyer1);
-        ticket.buyTicket{value: TICKET_PRICE}();
+        _approveAndBuy(buyer1, ticket);
 
         vm.prank(organizer);
         ticket.cancelEvent();
@@ -501,8 +527,8 @@ contract OnchainTicketingTest is Test {
         EventTicket ticket = EventTicket(eventAddr);
 
         vm.prank(organizer);
-        ticket.setPrice(0.2 ether);
-        assertEq(ticket.price(), 0.2 ether);
+        ticket.setPrice(200e6);
+        assertEq(ticket.price(), 200e6);
     }
 
     function test_SetPrice_NotOrganizer() public {
@@ -511,7 +537,7 @@ contract OnchainTicketingTest is Test {
 
         vm.prank(buyer1);
         vm.expectRevert(EventTicket.NotOrganizer.selector);
-        ticket.setPrice(0.2 ether);
+        ticket.setPrice(200e6);
     }
 
     function test_SetPrice_BuyAtNewPrice() public {
@@ -519,14 +545,20 @@ contract OnchainTicketingTest is Test {
         EventTicket ticket = EventTicket(eventAddr);
 
         vm.prank(organizer);
-        ticket.setPrice(0.2 ether);
+        ticket.setPrice(200e6);
 
-        vm.prank(buyer1);
-        vm.expectRevert(EventTicket.InsufficientPayment.selector);
-        ticket.buyTicket{value: 0.1 ether}();
+        // Approve old price — transferFrom should fail (insufficient allowance)
+        vm.startPrank(buyer1);
+        usdc.approve(address(ticket), 100e6);
+        vm.expectRevert();
+        ticket.buyTicket();
+        vm.stopPrank();
 
-        vm.prank(buyer1);
-        ticket.buyTicket{value: 0.2 ether}();
+        // Approve new price — should succeed
+        vm.startPrank(buyer1);
+        usdc.approve(address(ticket), 200e6);
+        ticket.buyTicket();
+        vm.stopPrank();
         assertEq(ticket.ownerOf(0), buyer1);
     }
 
@@ -538,8 +570,7 @@ contract OnchainTicketingTest is Test {
         address eventAddr = _createEvent(false);
         EventTicket ticket = EventTicket(eventAddr);
 
-        vm.prank(buyer1);
-        ticket.buyTicket{value: TICKET_PRICE}();
+        _approveAndBuy(buyer1, ticket);
 
         vm.prank(organizer);
         ticket.redeemTicketByOrganizer(0);
@@ -551,8 +582,7 @@ contract OnchainTicketingTest is Test {
         address eventAddr = _createEvent(false);
         EventTicket ticket = EventTicket(eventAddr);
 
-        vm.prank(buyer1);
-        ticket.buyTicket{value: TICKET_PRICE}();
+        _approveAndBuy(buyer1, ticket);
 
         vm.prank(buyer1);
         vm.expectRevert(EventTicket.NotOrganizer.selector);
@@ -563,8 +593,7 @@ contract OnchainTicketingTest is Test {
         address eventAddr = _createEvent(false);
         EventTicket ticket = EventTicket(eventAddr);
 
-        vm.prank(buyer1);
-        ticket.buyTicket{value: TICKET_PRICE}();
+        _approveAndBuy(buyer1, ticket);
 
         vm.prank(organizer);
         ticket.redeemTicketByOrganizer(0);

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useWriteContract, useWaitForTransactionReceipt } from "wagmi";
-import { parseEther, formatEther } from "viem";
+import { parseUnits, formatUnits } from "viem";
 import { eventTicketAbi } from "@/lib/abi/EventTicket";
 import { toast } from "sonner";
 
@@ -133,15 +133,15 @@ export function OrganizerPanel({
         <div className="flex items-end gap-3 pt-3 border-t border-amber-500/20">
           <div className="flex-1">
             <label className="block text-xs text-slate-400 mb-1">
-              New price (current: {formatEther(currentPrice)} ETH)
+              New price (current: {formatUnits(currentPrice, 6)} USDC)
             </label>
             <input
               type="number"
-              step="0.000001"
+              step="0.01"
               min="0"
               value={newPrice}
               onChange={(e) => setNewPrice(e.target.value)}
-              placeholder="0.001"
+              placeholder="10"
               className="w-full rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-white text-sm focus:outline-none focus:border-brand-500"
             />
           </div>
@@ -152,7 +152,7 @@ export function OrganizerPanel({
                 address,
                 abi: eventTicketAbi,
                 functionName: "setPrice",
-                args: [parseEther(newPrice)],
+                args: [parseUnits(newPrice, 6)],
               });
             }}
             disabled={busy || !newPrice}
