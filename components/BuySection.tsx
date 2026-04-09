@@ -45,6 +45,14 @@ export function BuySection({
     query: { enabled: !!userAddress },
   });
 
+  const { data: usdcBalance } = useReadContract({
+    address: USDC_ADDRESS,
+    abi: erc20Abi,
+    functionName: "balanceOf",
+    args: userAddress ? [userAddress] : undefined,
+    query: { enabled: !!userAddress },
+  });
+
   const canBuy = saleActive && !cancelled && remaining > 0 && !eventPassed;
   const maxBuy = Math.min(remaining, 10);
   const totalPrice = price * BigInt(quantity);
@@ -117,9 +125,19 @@ export function BuySection({
     <div className="glass relative overflow-hidden p-6">
       <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-accent-500/25 to-transparent" />
 
-      <h2 className="text-sm font-medium text-surface-400 mb-3 uppercase tracking-wider">
-        Purchase
-      </h2>
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-sm font-medium text-surface-400 uppercase tracking-wider">
+          Purchase
+        </h2>
+        {usdcBalance !== undefined && userAddress && (
+          <span className="text-xs text-surface-500">
+            Balance:{" "}
+            <span className={`font-medium ${(usdcBalance as bigint) < totalPrice ? "text-red-400" : "text-surface-300"}`}>
+              {formatUnits(usdcBalance as bigint, 6)} USDC
+            </span>
+          </span>
+        )}
+      </div>
       <div className="flex items-baseline gap-2 mb-1">
         <span className="font-display text-4xl font-bold text-surface-50">
           {formatUnits(price, 6)}

@@ -326,14 +326,32 @@ export default function CreateEventPage() {
             <label className="block text-sm font-medium text-surface-300 mb-2">
               Date &amp; Time
             </label>
-            <input
-              type="datetime-local"
-              value={date}
-              onChange={(e) => { setDate(e.target.value); clearError("date"); }}
-              onBlur={() => handleBlur("date", date)}
-              min={minDate}
-              className={fieldClass("date")}
-            />
+            <div className="relative">
+              <input
+                type="datetime-local"
+                value={date}
+                onChange={(e) => { setDate(e.target.value); clearError("date"); }}
+                onBlur={() => handleBlur("date", date)}
+                min={minDate}
+                className={`${fieldClass("date")} [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-10 [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer`}
+              />
+              <svg
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-accent-400 pointer-events-none"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                <line x1="16" y1="2" x2="16" y2="6" />
+                <line x1="8" y1="2" x2="8" y2="6" />
+                <line x1="3" y1="10" x2="21" y2="10" />
+              </svg>
+            </div>
             {errorMsg("date")}
           </div>
 
