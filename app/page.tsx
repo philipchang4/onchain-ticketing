@@ -91,9 +91,8 @@ export default function HomePage() {
             className="font-display text-5xl md:text-7xl lg:text-8xl font-extrabold tracking-tight leading-[0.95] mb-6 animate-fade-in-up"
             style={{ animationDelay: "80ms" }}
           >
-            <span className="gradient-text">Onchain</span>
-            <br />
-            <span className="text-surface-50">Ticketing</span>
+            <span className="gradient-text">Stub</span>
+            <span className="text-surface-50">less</span>
           </h1>
 
           {!hasEvents && (
